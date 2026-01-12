@@ -17,7 +17,7 @@ export function ArchitectureSlide() {
     {
       name: '데이터 플랫폼 계층',
       description: 'Hot/Warm/Cold 저장 전략',
-      components: ['DocumentDB (Hot)', 'RDS (Warm)', 'S3 + Athena (Cold)', 'Data Lake'],
+      components: ['DocumentDB (Hot)', 'RDS (Warm)', 'S3 + Iceberg + Athena (Cold)', 'Data Lake'],
       icon: Cloud,
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',

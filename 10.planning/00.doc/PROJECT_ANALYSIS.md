@@ -65,7 +65,7 @@
    - 그라데이션 배경 (blue-600 to purple-600)
 
 2. **현재 문제점 (ProblemSlide)**
-   - 데이터 사일로 문제
+   - 데이터 분산 문제 (시스템 간 데이터 통합 불가)
    - 느린 장애 대응
    - 높은 운영 비용
    - 제한적 확장성
@@ -146,7 +146,8 @@
      - 데이터 품질 프레임워크 (스키마 검증, 무결성, 비즈니스 룰)
      - 실시간 품질 지표
    - **아키텍처 탭**:
-     - 데이터 수집 경로 (CDC, 배치, 실시간)
+     - 원데이터 수집 경로 (IoT/센서/측정 데이터 → S3 Raw)
+     - 기초 정보 수집 (업체/고객/사용자/사이트/장비 정보 → RDS)
      - S3 3계층 구조 (Raw, Standardized, Curated)
      - 소비 레이어 (Hot/Warm/Cold)
      - 수집 방식 옵션 비교
@@ -154,6 +155,8 @@
      - Site-to-Site VPN + AWS PrivateLink
      - 보안 베스트 프랙티스
    - **생명주기 탭**:
+     - 원데이터 생명주기 (Raw → Hot → Cold)
+     - 기초 정보 관리 (RDS 상시 유지)
      - Hot/Warm/Cold 데이터 저장 전략
      - 자동화된 데이터 생명주기 관리
      - 비용 최적화 효과
@@ -333,9 +336,10 @@ npm run preview    # 빌드 결과 미리보기 (포트 4173)
 - **고객 만족도**: +25%
 
 ### 비용 최적화
-- **스토리지 비용**: 80% 절감
+- **스토리지 비용**: 80% 절감 (S3 Standard/IA 티어링 + Iceberg 최적화)
 - **처리 비용**: 60% 절감
-- **히스토리 분석**: 무제한 (서버리스 Athena)
+- **히스토리 분석**: 무제한 (서버리스 Athena + Iceberg 테이블 쿼리)
+- **Iceberg 파티션 프루닝**: 쿼리 비용 추가 절감
 
 ---
 
@@ -353,11 +357,12 @@ npm run preview    # 빌드 결과 미리보기 (포트 4173)
 ## 🛠️ 기술 아키텍처 (AWS 기반)
 
 ### 데이터 인프라
-- Amazon Kinesis (실시간 스트리밍)
+- Amazon Kinesis (원데이터 실시간 스트리밍)
 - AWS Lambda (서버리스 처리)
-- Amazon S3 (데이터 레이크)
-- Amazon RDS PostgreSQL (Warm 데이터)
-- DynamoDB/OpenSearch (Hot 데이터)
+- Amazon S3 (데이터 레이크, 원데이터 저장)
+- Apache Iceberg (Cold 원데이터 테이블 형식, ACID 트랜잭션, 스키마 진화)
+- Amazon RDS PostgreSQL (기초 정보 데이터 + 분석 집계 결과)
+- DynamoDB/OpenSearch (Hot 원데이터)
 
 ### AI/ML 플랫폼
 - Amazon SageMaker (ML 모델)
@@ -460,4 +465,4 @@ npm run preview    # 빌드 결과 미리보기 (포트 4173)
 
 ---
 
-*최종 업데이트: 2024년*
+*최종 업데이트: 2026년 3월*

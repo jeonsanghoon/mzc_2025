@@ -7,7 +7,7 @@ export function ProblemSlide() {
   const problems = [
     {
       icon: XCircle,
-      title: '데이터 사일로 문제',
+      title: '데이터 분산 문제',
       description: '7개 분산된 시스템으로 인한 통합 관리 불가',
       impact: '알람 오탐률 30%',
       color: 'text-red-500',

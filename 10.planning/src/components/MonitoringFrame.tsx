@@ -416,15 +416,16 @@ export function MonitoringFrame() {
     {
       tier: "Warm Data",
       database: "RDS (PostgreSQL)",
-      purpose: "분석 최적화 저장소 (최근 3개월)",
+      purpose: "기초 정보 데이터 (업체/고객/사용자/사이트/장비 정보) + 분석 집계 결과",
       structure: "정규화된 관계형",
       features: [
+        "기초 정보(마스터 데이터) 관리",
         "복잡한 분석 쿼리",
         "집계 성능",
         "히스토리 트렌드",
         "대시보드 지원",
       ],
-      retention: "3개월",
+      retention: "상시 유지 (기초 정보) / 3년 (집계 결과)",
       access: "고속 쿼리",
       icon: BarChart3,
       color: "text-blue-600",
@@ -451,37 +452,37 @@ export function MonitoringFrame() {
 
   const coldDataArchitecture = [
     {
-      component: "S3 Data Lake",
-      description: "계층화된 스토리지 관리",
+      component: "S3 + Apache Iceberg",
+      description: "Iceberg 테이블 형식 저장",
       features: [
-        "Standard → IA → Glacier 자동 전환",
-        "Parquet 포맷 최적화",
-        "파티셔닝 (연/월/일)",
-        "Lifecycle 정책 관리",
+        "ACID 트랜잭션 보장",
+        "스키마 진화 및 파티션 진화",
+        "시간 여행 쿼리 지원",
+        "파티션 프루닝 최적화",
       ],
       icon: Cloud,
       color: "text-blue-600",
     },
     {
       component: "AWS Glue",
-      description: "ETL 및 카탈로그 관리",
+      description: "ETL 및 Iceberg 카탈로그 관리",
       features: [
-        "Hot/Warm → Cold 데이터 전환",
-        "스키마 발견 및 관리",
+        "Hot/Warm → Iceberg 테이블 전환",
+        "Iceberg 카탈로그 관리",
         "데이터 품질 검증",
-        "자동 파티션 생성",
+        "Iceberg 최적화 작업 (Compaction)",
       ],
       icon: GitBranch,
       color: "text-green-600",
     },
     {
       component: "Amazon Athena",
-      description: "서버리스 분석 엔진",
+      description: "서버리스 SQL 분석 엔진",
       features: [
-        "SQL 기반 대용량 분석",
-        "비용 최적화 쿼리",
-        "결과 캐싱",
-        "BI 도구 연동",
+        "Iceberg 테이블 SQL 쿼리",
+        "대용량 히스토리 분석",
+        "시간 여행 쿼리 (Time Travel)",
+        "BI 도구 연동 (QuickSight 등)",
       ],
       icon: Search,
       color: "text-purple-600",
@@ -500,10 +501,10 @@ export function MonitoringFrame() {
       color: "text-red-500",
     },
     {
-      stage: "분석 처리",
-      period: "7일~3개월",
+      stage: "기초 정보 + 분석",
+      period: "상시 유지",
       storage: "RDS",
-      purpose: "대시보드 및 리포트",
+      purpose: "기초 정보(마스터 데이터) 관리 + 대시보드 및 리포트 집계 결과",
       cost: "중간",
       performance: "높음",
       icon: BarChart3,
@@ -512,8 +513,8 @@ export function MonitoringFrame() {
     {
       stage: "장기 보관",
       period: "3개월 이후",
-      storage: "S3 + Athena",
-      purpose: "규정 준수 및 히스토리 분석",
+      storage: "S3 + Iceberg + Athena",
+      purpose: "규정 준수 및 히스토리 분석 (Iceberg 테이블 형식)",
       cost: "낮음",
       performance: "분석 시",
       icon: Archive,
@@ -1397,7 +1398,7 @@ export function MonitoringFrame() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Archive className="h-5 w-5 text-gray-500" />
-                콜드 데이터 아키텍처 (S3 + Glue + Athena)
+                콜드 데이터 아키텍처 (S3 + Iceberg + Athena)
               </CardTitle>
               <CardDescription>
                 장기 보관 데이터의 효율적 관리 및 분석 시스템
@@ -1514,7 +1515,7 @@ export function MonitoringFrame() {
                       Warm 데이터 변환
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      DocumentDB → ETL → RDS (분석 및 리포트용)
+                      DocumentDB 원데이터 → ETL → RDS 집계 결과 저장 (기초 정보는 RDS에 상시 유지)
                     </div>
                   </div>
                   <Badge>5-15분</Badge>
@@ -1526,8 +1527,7 @@ export function MonitoringFrame() {
                       Cold 데이터 아카이빙
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      RDS → Glue ETL → S3 (Parquet 형태 장기
-                      보관)
+                      S3 Raw 원데이터 → Glue ETL → S3 Iceberg (원데이터 장기 보관, 기초 정보는 RDS 유지)
                     </div>
                   </div>
                   <Badge>일일 배치</Badge>
@@ -1539,7 +1539,7 @@ export function MonitoringFrame() {
                       히스토리 분석
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Athena → S3 Cold Data 대용량 분석 및 규정
+                      Athena → S3 Iceberg 테이블 대용량 분석 및 규정
                       준수
                     </div>
                   </div>
@@ -1570,7 +1570,7 @@ export function MonitoringFrame() {
                     스토리지 비용
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    S3 Glacier 활용
+                    S3 + Iceberg 최적화
                   </div>
                 </div>
                 <div className="text-center p-4 bg-white rounded-lg">

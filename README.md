@@ -121,7 +121,7 @@ mzc_2025/
 ### 1. 데이터 통합 플랫폼
 - 7개 도메인 통합 스키마 (telemetry, event, device, site, customer, control, ota)
 - S3 3계층 구조 (Raw → Standardized → Curated)
-- Hot/Warm/Cold 데이터 저장 전략
+- Hot/Warm/Cold 데이터 저장 전략 (Cold: S3 + Apache Iceberg + Athena)
 - Data Contract 기반 품질 관리
 
 ### 2. 지능형 모니터링
@@ -150,6 +150,7 @@ mzc_2025/
 ## 🔗 참고 자료
 
 - [프로젝트 상세 분석](./10.planning/00.doc/PROJECT_ANALYSIS.md)
+- [프로세스 플로우 다이어그램](./10.planning/00.doc/PROCESS_FLOW.md) - 전체 시스템 프로세스를 Mermaid로 시각화
 - [Figma 디자인 원본](https://www.figma.com/design/Vw6CObicvb987G2VWpPpHF/%EC%84%9C%EB%B9%84%EC%8A%A4-%EA%B5%AC%EC%84%B1-%EC%A0%9C%EC%95%88)
 - [shadcn/ui 문서](https://ui.shadcn.com/)
 

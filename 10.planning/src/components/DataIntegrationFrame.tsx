@@ -206,21 +206,21 @@ export function DataIntegrationFrame() {
     {
       name: "Hot",
       storage: "DynamoDB / OpenSearch",
-      useCase: "알람, Shadow 큐",
+      useCase: "실시간 알람, Shadow 큐, 최근 측정 데이터",
       icon: Zap,
       color: "text-red-500",
     },
     {
       name: "Warm",
       storage: "RDS PostgreSQL",
-      useCase: "대시보드/분석 집계 (⩾3년 보관 후 Cold 이관)",
+      useCase: "기초 정보 데이터 (업체/고객/사용자/사이트/장비 정보) + 분석 집계 결과",
       icon: Database,
       color: "text-orange-500",
     },
     {
       name: "Cold",
-      storage: "S3 Glacier / Deep Archive",
-      useCase: "장기 보관, 규제 대응",
+      storage: "S3 + Apache Iceberg + Athena",
+      useCase: "원데이터 장기 보관, 규제 대응, 히스토리 분석",
       icon: Archive,
       color: "text-blue-500",
     },
@@ -236,10 +236,12 @@ export function DataIntegrationFrame() {
   ];
 
   const methodology = [
-    "수집 우선순위: 네이티브 CDC → DB 로그 기반 → 트리거 로깅 → 배치(초기/보조)",
-    "S3 Raw에 변경 이벤트 전량 보존(append-only)으로 단일 진실원장 확보",
-    "Standardized에서 스키마 표준화/마스킹/DQ 검증, Curated에서 집계·서빙 최적화",
-    "분석 결과(집계·지표)는 Warm(RDS)에 최소 3년 보관, 이후 Cold로 순차 이관",
+    "원데이터 수집: IoT/센서/측정 데이터는 S3 Raw Layer로 직접 수집 (RDBMS/NoSQL/File/IoT)",
+    "기초 정보 관리: 업체/고객/사용자/사이트/장비 정보는 RDS에 저장 (마스터 데이터)",
+    "데이터 통합: 원데이터 처리 시 RDS의 기초 정보를 참조하여 데이터 보강 및 해석",
+    "S3 Raw에 원데이터 전량 보존(append-only)으로 단일 진실원장 확보",
+    "Standardized에서 스키마 표준화/기초 정보 조인/마스킹/DQ 검증, Curated에서 집계·서빙 최적화",
+    "분석 결과(집계·지표)는 RDS에 최소 3년 보관, 원데이터는 S3 Raw에서 Cold(Iceberg)로 순차 이관",
     "멱등키(source, table, tx_id, seq)로 중복 제거, Raw 재생(replay)로 재처리 가능",
     "비용/성능: 파티션·파일 크기 정책, Iceberg Optimize, Lifecycle로 티어링",
   ];
@@ -326,48 +328,49 @@ export function DataIntegrationFrame() {
     },
     {
       tier: "Warm",
-      period: "7일 ~ 3년+",
+      period: "상시 유지",
       storage: "RDS PostgreSQL",
       purpose:
-        "대시보드/연도별 통계·집계 (⩾3년 보관 후 Cold 이관)",
+        "기초 정보 데이터 (업체/고객/사용자/사이트/장비 설정 정보) + 분석 집계 결과 (⩾3년 보관)",
       color: "text-orange-500",
     },
     {
       tier: "Cold",
       period: "3년 경과분",
-      storage: "S3 + Glue + Athena",
-      purpose: "장기 보관/규정 준수, 대용량 히스토리 분석",
+      storage: "S3 + Apache Iceberg + Athena",
+      purpose: "장기 보관/규정 준수, 대용량 히스토리 분석 (Iceberg 테이블 형식)",
       color: "text-blue-500",
     },
   ];
 
   const coldArchitecture = [
     {
-      name: "Amazon S3 Data Lake",
-      desc: "Standard → IA → Glacier 자동 전환, Parquet 최적화",
+      name: "Amazon S3 + Apache Iceberg",
+      desc: "원데이터를 Iceberg 테이블 형식으로 저장, ACID 트랜잭션, 스키마 진화, 파티션 진화 지원",
       icon: Cloud,
     },
     {
       name: "AWS Glue",
-      desc: "ETL 처리, 스키마 관리, Warm(3년) → Cold 이관 작업 자동화",
+      desc: "ETL 처리, Iceberg 카탈로그 관리, S3 Raw 원데이터를 Cold(Iceberg)로 이관 작업 자동화, Iceberg 최적화",
       icon: Layers,
     },
     {
       name: "Amazon Athena",
-      desc: "서버리스 SQL 분석, 대용량 히스토리 데이터 조회",
+      desc: "서버리스 SQL 분석, Iceberg 테이블 쿼리, 대용량 원데이터 히스토리 조회, 시간 여행 쿼리, RDS 기초 정보와 조인 가능",
       icon: BarChart3,
     },
   ];
 
   const lifecycle = [
-    "자동화된 데이터 이동: Raw는 즉시 Cold 착륙, 집계·지표는 Warm에서 최소 3년 유지 후 Cold로 순차 이관",
-    "비용과 성능의 균형: 빈도 높은 질의는 Warm, 히스토리 드릴다운은 Athena(Cold)",
-    "규정 준수: 장기 보관·보존연한·삭제(파기) 정책을 워크플로우로 자동화",
+    "자동화된 데이터 이동: 원데이터는 S3 Raw에서 Cold(Iceberg)로 순차 이관, 기초 정보는 RDS에 상시 유지, 집계·지표는 RDS에 최소 3년 보관",
+    "비용과 성능의 균형: 기초 정보 조회는 RDS, 빈도 높은 집계는 RDS, 히스토리 원데이터 드릴다운은 Athena로 Iceberg 테이블 쿼리 (RDS 기초 정보와 조인)",
+    "규정 준수: 장기 보관·보존연한·삭제(파기) 정책을 워크플로우로 자동화, Iceberg 파티션 단위 관리",
   ];
 
   const costEffects = [
-    "스토리지 비용 최대 80% 절감 (IA/Glacier 티어링)",
-    "서버리스 분석으로 무제한 히스토리 조회",
+    "스토리지 비용 최대 80% 절감 (S3 Standard/IA 티어링 + Iceberg 최적화)",
+    "서버리스 분석으로 무제한 히스토리 조회 (Athena + Iceberg)",
+    "Iceberg의 파티션 프루닝 및 파일 레벨 최적화로 쿼리 비용 절감",
     "자동화된 데이터 수명주기 관리로 운영비 절감",
   ];
 
@@ -1082,10 +1085,10 @@ export function DataIntegrationFrame() {
                   <Archive className="h-6 w-6 text-gray-600" />
                   <div className="flex-1">
                     <div className="font-medium">
-                      Warm → Cold (장기 보관)
+                      Warm → Iceberg (장기 보관)
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      규정 준수 및 히스토리 분석용
+                      규정 준수 및 히스토리 분석용 (Iceberg 테이블)
                     </div>
                   </div>
                 </div>
