@@ -68,7 +68,7 @@ export function ProblemFrame() {
       color: "text-blue-500",
       bgColor: "bg-blue-50",
       issues: [
-        "RDBMS / NoSQL / File / IoT 장비별로 분산 → 통합 불가",
+        "RDBMS/NoSQL/File/IoT 장비별, TCP/MQTT/REST API 프로토콜별, Hex Binary/JSON/CSV 형식별 분산 → 통합 불가",
         "표준 스키마, 시간대, 단위, ID 불일치 → 분석 불신",
         "실시간은 일부만 필요하지만 무분별 수집 → 장애 & 비용 증가",
       ],

@@ -2,23 +2,46 @@
 
 ## 📋 문서 개요
 
-이 문서는 **통합 데이터 플랫폼 기반 지능형 IoT 관리 솔루션**의 기술적 상세 분석 문서입니다.
+이 문서는 **통합 데이터 플랫폼 기반 지능형 IoT 관리 솔루션**의 기술적 상세 분석 문서입니다. 목표는 **가능한 다양한 데이터 소스를 한 플랫폼에서 통합 관리**하는 데 있습니다.
 
 > **참고**: 서비스 개요 및 비즈니스 관점의 내용은 [SERVICE_OVERVIEW.md](./SERVICE_OVERVIEW.md)를 참고하세요.
 
+### 통합 관리 범위
+- **프로토콜**: TCP, MQTT, REST API
+- **형식**: Hex Binary, JSON, CSV
+- **원천**: IoT 센서, 파일 배치, RDBMS, NoSQL
+
+### 통합 대상 데이터
+- **센서/텔레메트리**: 주기/이벤트 데이터 → Kinesis + Lambda 표준화
+- **제어/상태**: Shadow 명령 및 결과 → DocumentDB 이력 (Warm)
+- **펌웨어/OTA**: 업데이트 요청/상태 코드 → DocumentDB 이력 (Warm)
+- **파일/이미지/로그**: S3 저장 + 메타데이터 관리
+- **마스터/기초정보**: DMS/CDC로 Aurora 통합
+- **알람/이력**: 룰 평가 결과 및 처리 이력 저장
+
+### 데이터 유형별 저장소 매핑
+| 데이터 유형 | Hot (DocumentDB) | Warm (DocumentDB) | Warm (Aurora) | Cold (S3+Iceberg) |
+| --- | --- | --- | --- | --- |
+| 센서/텔레메트리 | 실시간 원본/요약 | - | 고객별 일별 집계 | 장기 보관 |
+| 제어/상태 | 최신 상태 | 제어 이력 | - | 장기 이력 |
+| 펌웨어/OTA | 진행 상태 | 배포/롤백 이력 | - | 장기 보관 |
+| 파일/이미지/로그 | 메타 캐시 | - | 메타데이터 | 원본 파일 |
+| 마스터/기초정보 | - | - | 정합성 기준 | 스냅샷 |
+| 알람/이력 | 실시간 알람 | 처리 이력 | - | 장기 분석 |
+
 ---
 
-## 🏗️ 통합 데이터 플랫폼 (핵심 - 기술적 상세)
+## 🏗️ 통합 데이터 플랫폼 (기술적 상세)
 
 ### 플랫폼 아키텍처
 
-**통합 데이터 플랫폼**은 이 서비스의 핵심이며, 모든 기능의 기술적 기반이 됩니다.
+**통합 데이터 플랫폼**은 모든 기능의 기술적 기반입니다.
 
-#### 플랫폼의 핵심 통합 프로세스
+#### 통합 프로세스
 
-통합 데이터 플랫폼은 **두 가지 핵심 통합 프로세스**로 구성됩니다:
+두 가지 통합 프로세스로 구성됩니다:
 
-##### 1. 센서 데이터 통합 (플랫폼 내 실시간 스트리밍 통합)
+##### 1. 센서 데이터 통합 (실시간 스트리밍 통합)
 
 **기술적 구현**:
 - **다중 프로토콜 지원**: TCP (ECS), MQTT (IoT Core), REST API (ECS, 특별한 경우만 API Gateway)
@@ -36,7 +59,7 @@
 - **배치 처리**: 파일 데이터는 별도 배치 Job (Glue/ECS/Lambda)으로 처리
 
 **표준 텔레메트리 데이터 구조**:
-- **중요**: 센서 데이터에는 고객 정보(`customerId`, `siteId`)가 포함되지 않습니다.
+- **중요**: 센서 데이터에는 고객 정보(`customer_id`, `site_id`)가 포함되지 않습니다.
 - **필수 필드**: `device_id`, `device_timestamp`, `productId`, `metrics`
 - **허브-차일드 구조**: `hub_id`, `hub_timestamp`, `childDeviceId` (허브-차일드 구조인 경우)
 - **타임스탬프 관리**: 
@@ -45,7 +68,7 @@
   - `ingest_timestamp`: 플랫폼 수신 타임스탬프 (Kinesis 수신 시점, 자동 생성)
 - **토픽에서 추출**: MQTT 토픽에서 `hub_id`, `device_id` 추출
 - **원본 참조**: `rawRef` (프로토콜, 토픽, 원본 형식 등)
-- **고객 정보 조인**: 집계 단계에서 `device_id` → `siteId` → `customerId` 조인 수행
+- **고객 정보 조인**: 집계 단계에서 `device_id` → `site_id` → `customer_id` 조인 수행
 
 **허브-차일드 디바이스 구조**:
 - **허브 디바이스 (Hub Device)**: 여러 차일드 디바이스를 관리하는 게이트웨이
@@ -61,14 +84,14 @@
   - 디바이스 페이로드에서 `device_timestamp` 추출
   - 허브에서 수신한 시점을 `hub_timestamp`로 기록
 
-##### 2. 기초 데이터 통합 (플랫폼 내 분산 데이터베이스 통합)
+##### 2. 기초 데이터 통합 (분산 데이터베이스 통합)
 
 **기술적 구현**:
 - **분산된 RDBMS 통합**: MariaDB, MySQL, MSSQL, Oracle 등 다양한 데이터베이스 통합
 - **NoSQL 통합**: MongoDB, DynamoDB 등 NoSQL 데이터베이스 통합
 - **DMS (Database Migration Service)**: 분산된 RDBMS를 통합 Aurora PostgreSQL로 마이그레이션
-  - **Full Load**: 초기 데이터 전체 마이그레이션
-  - **CDC (Change Data Capture)**: 실시간 변경사항 동기화
+  - **Full Load + CDC 혼합**: 초기 데이터는 Full Load로 적재, 이후 변경사항은 CDC로 동기화
+  - **CDC 버퍼링**: 변경사항은 상황에 따라 Kinesis Data Streams로 버퍼 처리 후 반영
     - DMS CDC: RDBMS 트랜잭션 로그 기반 실시간 캡처 → Kinesis Data Streams
 - **NoSQL CDC**: 
   - MongoDB Change Streams → Kinesis Producer SDK → Kinesis Data Streams
@@ -80,14 +103,14 @@
     - **효과**: 조회 성능 향상, Write 부하 분산, 확장성 향상
 - **데이터 품질 관리**: 중복 제거, 정규화, 일관성 검증
 
-##### 3. 통합 분석 데이터 생성 (플랫폼 핵심 출력)
+##### 3. 통합 분석 데이터 생성
 
 **기술적 구현**:
 - **데이터 조인**: 통합 Aurora Read Endpoint의 기초 정보와 센서 데이터를 조인 (CQRS 패턴)
 - **데이터 보강**: Lambda Function을 통한 비즈니스 룰 적용 및 컨텍스트 정보 추가
 - **계산식 기반 분석 데이터 생성**: 
   - **계산식 등록 및 관리**: 제품별/고객별/디바이스별 계산식 등록 시스템
-  - **실시간 계산식 적용**: Lambda Function을 통한 실시간 계산
+  - **일 단위 계산식 적용**: EventBridge 스케줄러 → Lambda로 일별 집계 완료 후 계산 적용
   - **계산 결과 저장**: 분석 데이터로 저장 및 활용
 - **계층별 저장**: Hot/Warm/Cold 레이어로 분리 저장
 
@@ -112,16 +135,16 @@
 - **저장소**: Aurora PostgreSQL (CQRS 패턴 적용)
   - **Write Endpoint**: Primary Aurora (데이터 변경 작업)
   - **Read Endpoint**: Read Replica (데이터 조회 작업)
-- **용도**: 통합 기초 정보 + **일별 고객별 집계**, 분석 리포트, 알람 이력, 에러 알림 처리 서비스 정보, **계산식 적용 분석 데이터**
+- **용도**: 통합 기초 정보 + **일별 고객별 집계**, 분석 리포트, 에러 알림 처리 서비스 정보, **계산식 적용 분석 데이터**
 - **특징**: 관계형 데이터 조인, 복잡한 쿼리 지원, Read/Write 분리로 성능 최적화, 고가용성 및 자동 백업
 - **데이터**: 
   - 통합 기초 정보 (device → site → customer 매핑)
   - **일별 고객별 제품별 집계** (고객 정보 조인 후 집계)
   - **계산식 적용 분석 데이터** (고객별 제품별 일별 데이터에 계산식 적용 결과)
-  - 알람 이력, 에러 알림 처리 서비스 정보
+  - 에러 알림 처리 서비스 정보
 - **집계 특징**: 
   - DocumentDB의 제품별 일별 집계를 읽어와서
-  - Aurora의 기초 정보(deviceId → customerId)와 조인하여
+  - Aurora의 기초 정보(`device_id` → `customer_id`)와 조인하여
   - 고객별 제품별 일별 집계 생성
 - **계산식 적용**: 고객별 제품별 일별 집계 데이터부터 계산식 적용하여 분석 데이터 생성
 - **CQRS 패턴**: Command(Write)와 Query(Read) 분리로 효율적 운영
@@ -141,11 +164,11 @@
 
 ## 📊 주요 기능 (기술적 상세)
 
-### 1. 통합 데이터 플랫폼 (핵심)
+### 1. 통합 데이터 플랫폼
 
 위에서 상세히 설명한 통합 데이터 플랫폼이 모든 기능의 기술적 기반입니다.
 
-**핵심 역할**:
+**주요 역할**:
 - 센서 데이터와 기초 데이터를 단일 플랫폼으로 통합
 - 실시간 데이터 처리 및 변환
 - 통합 분석 데이터 생성 및 제공
@@ -176,7 +199,7 @@
 - DocumentDB Read Endpoint를 통한 실시간 데이터 조회
 - QuickSight 또는 커스텀 대시보드
 - KPI 지표 모니터링
-- 알람 현황 및 이력 관리 (Aurora PostgreSQL)
+- 알람 현황 및 이력 관리 (DocumentDB, Warm)
 
 ### 3. 원격 제어 및 OTA
 
@@ -250,7 +273,8 @@
 ### 기초 정보 통합
 - **DMS (Database Migration Service)**: 분산된 RDBMS 통합 마이그레이션
   - 지원 데이터베이스: MariaDB, MySQL, MSSQL, Oracle, PostgreSQL, MongoDB
-  - Full Load + CDC 방식
+  - **Full Load + CDC 혼합 방식**: 초기 데이터는 Full Load로 적재, 이후 변경사항은 CDC로 동기화
+  - **버퍼 처리**: 상황에 따라 CDC 변경사항을 Kinesis Data Streams로 버퍼링 후 반영
 - **CDC (Change Data Capture)**: 실시간 변경사항 동기화
   - DMS CDC: RDBMS 트랜잭션 로그 기반 실시간 캡처 → Kinesis Data Streams
   - MongoDB Change Streams: NoSQL 변경사항 스트리밍 → Kinesis Producer SDK → Kinesis Data Streams
@@ -267,16 +291,21 @@
 - **S3**: 원본 데이터 및 Iceberg 테이블 저장
 - **Apache Iceberg**: 테이블 형식 (ACID, 스키마 진화, 시간 여행)
 - **Amazon Athena**: SQL 쿼리 엔진
-- **Aurora PostgreSQL**: 통합 기초 정보, **일별 고객별 집계**, **계산식 적용 분석 데이터**, 알람 이력, 에러 알림 처리 서비스 정보
+- **DocumentDB (Warm)**: 제어/OTA/알람 이력
+- **Aurora PostgreSQL**: 통합 기초 정보, **일별 고객별 집계**, **계산식 적용 분석 데이터**, 에러 알림 처리 서비스 정보
   - **CQRS 패턴**: Read/Write Endpoint 분리
     - **Write Endpoint**: Primary Aurora (데이터 변경)
     - **Read Endpoint**: Read Replica (데이터 조회)
   - **집계 데이터**: 일별 고객별 제품별 집계 (센서 데이터 + 기초 정보 조인 후 집계)
   - **분석 데이터**: 고객별 제품별 일별 데이터에 계산식 적용 결과
-- **DocumentDB**: Hot 데이터 실시간 접근, **제품별 시간별/일별 집계** (MongoDB 호환 NoSQL, CQRS 패턴)
+- **DocumentDB (Hot)**: 실시간 접근 데이터, **제품별 시간별/일별 집계** (MongoDB 호환 NoSQL, CQRS 패턴)
   - **Write Endpoint**: Primary DocumentDB (데이터 변경)
   - **Read Endpoint**: Read Replica (데이터 조회)
   - **집계 데이터**: 제품별 시간별(1시간, 6시간) / 일별 집계 (센서 데이터에는 고객 정보 없음)
+- **DocumentDB (Warm)**: 제어/OTA/알람 이력 (MongoDB 호환 NoSQL, CQRS 패턴)
+  - **Write Endpoint**: Primary DocumentDB (데이터 변경)
+  - **Read Endpoint**: Read Replica (데이터 조회)
+  - **이력 데이터**: 제어 명령 이력, OTA 배포/롤백 이력, 알람 처리 이력
 
 ### 모니터링 및 알람
 - **EventBridge**: 이벤트 라우팅
@@ -397,11 +426,12 @@
   - Read Endpoint: Read Replica (데이터 조회)
   - **집계 데이터**: 제품별 시간별(1시간, 6시간) / 일별 집계
     - 센서 데이터에는 고객 정보가 없으므로 제품별 집계만 수행
-- Aurora PostgreSQL (통합 기초 정보, **일별 고객별 집계**, **계산식 적용 분석 데이터**, 알람 이력, 에러 알림 처리 서비스 정보, CQRS 패턴)
+- - **DocumentDB (Warm)**: 제어/OTA/알람 이력 (CQRS 패턴)
+- **Aurora PostgreSQL**: 통합 기초 정보, **일별 고객별 집계**, **계산식 적용 분석 데이터**, 에러 알림 처리 서비스 정보 (CQRS 패턴)
   - Write Endpoint: Primary Aurora (데이터 변경)
   - Read Endpoint: Read Replica (데이터 조회)
   - **집계 데이터**: 일별 고객별 제품별 집계
-    - DocumentDB의 제품별 일별 집계 + 기초 정보(deviceId → customerId) 조인 후 집계
+    - DocumentDB의 제품별 일별 집계 + 기초 정보(`device_id` → `customer_id`) 조인 후 집계
   - **분석 데이터**: 고객별 제품별 일별 데이터에 계산식 적용 결과
     - 관리 화면에서 조회하여 표시
 - S3 (Raw/Standardized/Curated Layer)

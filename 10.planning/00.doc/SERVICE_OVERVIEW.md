@@ -6,7 +6,26 @@
 **데이터 통합 플랫폼 기반 지능형 IoT 관리 솔루션**
 
 ### 서비스 목적
-분산된 IoT 데이터를 통합하고, 실시간 모니터링, 원격 제어, AI 기반 분석을 통해 **무중단 서비스를 지원하는 지능형 IoT 관리 플랫폼**을 제공합니다.
+분산된 IoT 데이터를 통합하고, **프로토콜/형식/저장소가 다른 데이터까지 최대한 폭넓게 통합 관리**하며, 실시간 모니터링, 원격 제어, AI 기반 분석을 통해 **무중단 서비스를 지원하는 지능형 IoT 관리 플랫폼**을 제공합니다.
+
+#### 통합 관리 범위
+- **프로토콜**: TCP, MQTT, REST API
+- **형식**: Hex Binary, JSON, CSV
+- **원천**: IoT 센서, 파일 배치, RDBMS, NoSQL
+
+#### 통합 대상 데이터
+- **센서/텔레메트리**: 주기/이벤트 데이터
+- **제어/상태**: Shadow 명령 및 결과
+- **펌웨어/OTA**: 업데이트 요청 및 상태
+- **파일/이미지/로그**: 업로드 파일 및 메타데이터
+- **마스터/기초정보**: 고객/사이트/디바이스
+- **알람/이력**: 알람 이벤트 및 처리 이력
+
+#### 데이터 유형별 저장소 매핑
+- **Hot (DocumentDB)**: 실시간 센서/알람, 최신 상태
+- **Warm (DocumentDB)**: 제어/OTA/알람 이력
+- **Warm (Aurora)**: 고객별 집계, 기초정보
+- **Cold (S3+Iceberg)**: 장기 보관 및 분석
 
 ---
 
@@ -32,32 +51,36 @@
 
 ### 무중단 서비스 지원 프로세스
 
-```
-1. 통합 데이터 플랫폼 (핵심 - 모든 기능의 기반)
-   ├─ 센서 데이터 통합 (플랫폼 내 실시간 스트리밍)
-   └─ 기초 데이터 통합 (플랫폼 내 분산 데이터베이스 통합)
-   ↓
-2. 통합 분석 데이터 생성 (플랫폼 출력)
-   (센서 데이터 + 기초 정보 조인)
-   ↓
-3. 모니터링 (통합 데이터 플랫폼 기반, 제품별 룰셋 적용)
-   ↓
-4. 알림 발생 (통합 데이터 플랫폼 기반, 제품별 심각도)
-   ↓
-5. 제어/OTA 처리 (통합 데이터 플랫폼 기반, 자동 대응)
-   ↓
-6. 기사 출동 처리 (필요 시)
-   ↓
-7. 제품 개선 (통합 데이터 플랫폼의 통합 분석 데이터 활용)
-   ↓
-(다시 1번으로)
+```mermaid
+flowchart TD
+    A[1. 통합 데이터 플랫폼] --> A1[센서 데이터 통합<br/>실시간 스트리밍]
+    A --> A2[기초 데이터 통합<br/>분산 DB 통합]
+    A1 --> B[2. 통합 분석 데이터 생성<br/>센서 + 기초 정보 조인]
+    A2 --> B
+    B --> C[3. 모니터링<br/>제품별 룰셋 적용]
+    C --> D[4. 알림 발생<br/>제품별 심각도]
+    D --> E{자동 대응<br/>가능?}
+    E -->|예| F[5. 제어/OTA 처리<br/>원격 해결]
+    E -->|아니오| G[6. 기사 출동 처리]
+    F --> H[7. 제품 개선<br/>통합 분석 데이터 활용]
+    G --> H
+    H -.->|지속적 개선| A
+    
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style A1 fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style A2 fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style D fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style F fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+    style G fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style H fill:#f1f8e9,stroke:#558b2f,stroke-width:2px
 ```
 
 ### 통합 데이터 플랫폼의 역할
 
-이 서비스의 핵심은 **통합 데이터 플랫폼**입니다.
-
-통합 데이터 플랫폼은 다음과 같은 역할을 수행합니다:
+**통합 데이터 플랫폼**의 역할:
 
 1. **데이터 통합 허브**: 모든 데이터 소스를 단일 플랫폼으로 통합
    - 센서 데이터 통합: 다양한 프로토콜과 형식의 센서 데이터를 실시간으로 통합
@@ -105,21 +128,13 @@
 
 ## 📊 주요 기능
 
-### 1. 통합 데이터 플랫폼 (핵심 - 모든 기능의 기반)
+### 1. 통합 데이터 플랫폼
 
-**통합 데이터 플랫폼**은 이 시스템의 핵심이며, 모든 기능의 기반이 됩니다.
+서비스 목적에서 정의한 **다양한 데이터 통합 범위**를 실행하는 핵심 기능입니다. 두 가지 통합 프로세스로 구성됩니다:
 
-통합 데이터 플랫폼은 분산된 모든 데이터를 통합하여 분석 가능한 형태로 변환하는 플랫폼으로, 다음과 같은 목적을 가집니다:
+#### 🔵 센서 데이터 통합 (실시간 스트리밍 통합)
 
-- **데이터 분산 문제 해결**: RDBMS/NoSQL/File/IoT 장비별로 분산된 데이터를 단일 플랫폼으로 통합
-- **실시간 통합**: 센서 데이터와 기초 데이터를 실시간으로 통합하여 즉시 분석 가능
-- **통합 분석 데이터 제공**: 통합된 데이터를 기반으로 지능형 모니터링, 자동 제어, 예측 분석 등 고급 기능 제공
-
-통합 데이터 플랫폼은 **두 가지 핵심 통합 프로세스**로 구성됩니다:
-
-#### 🔵 센서 데이터 통합 (플랫폼 내 실시간 스트리밍 통합)
-
-**목적**: 통합 데이터 플랫폼 내에서 다양한 프로토콜과 형식의 센서 데이터를 실시간으로 통합하여 표준화된 분석 데이터로 변환
+다양한 프로토콜과 형식의 센서 데이터를 실시간으로 통합하여 표준화된 분석 데이터로 변환합니다.
 
 - **다중 프로토콜 지원**: TCP (ECS), MQTT (IoT Core), REST API (ECS, 특별한 경우만 API Gateway)
 - **VPN 터널링**: 기존 온프레미스 시스템과 AWS 간 안전한 연동
@@ -129,13 +144,15 @@
 - **스키마 검증**: Data Contract를 통한 데이터 품질 보장
 - **배치 처리**: 파일 데이터는 별도 배치 Job으로 처리
 
-#### 🟡 기초 데이터 통합 (플랫폼 내 분산 데이터베이스 통합)
+#### 🟡 기초 데이터 통합 (분산 데이터베이스 통합)
 
-**목적**: 통합 데이터 플랫폼 내에서 분산된 기초 정보 데이터베이스를 통합하여 센서 데이터 분석의 기반 구축
+분산된 기초 정보 데이터베이스를 통합하여 센서 데이터 분석의 기반을 구축합니다.
 
 - **분산된 RDBMS 통합**: MariaDB, MySQL, MSSQL, Oracle 등 다양한 데이터베이스 통합
 - **NoSQL 통합**: MongoDB, DynamoDB 등 NoSQL 데이터베이스 통합
 - **DMS (Database Migration Service)**: 분산된 RDBMS를 통합 Aurora PostgreSQL로 마이그레이션
+  - **Full Load + CDC 혼합**: 초기 데이터는 Full Load, 이후 변경사항은 CDC로 동기화
+  - **버퍼 처리**: 상황에 따라 CDC 변경사항을 Kinesis Data Streams로 버퍼링 후 반영
 - **CDC (Change Data Capture)**: 실시간 변경 데이터 캡처 및 동기화
   - **DMS CDC**: RDBMS 변경사항을 실시간으로 Kinesis로 전송
   - **NoSQL CDC**: MongoDB Change Streams, DynamoDB Streams 등을 통한 변경사항 캡처
@@ -145,9 +162,9 @@
     - **Read Endpoint**: Read Replica (데이터 조회)
 - **데이터 품질 관리**: 중복 제거, 정규화, 일관성 검증
 
-#### 🟢 통합 분석 데이터 생성 (플랫폼 핵심 출력)
+#### 🟢 통합 분석 데이터 생성
 
-**목적**: 통합 데이터 플랫폼 내에서 센서 데이터와 기초 데이터를 결합하여 분석 가능한 통합 데이터 생성
+센서 데이터와 기초 데이터를 결합하여 분석 가능한 통합 데이터를 생성합니다.
 
 - **데이터 조인**: 통합 Aurora의 기초 정보와 센서 데이터를 조인
 - **데이터 보강**: 비즈니스 룰 적용 및 컨텍스트 정보 추가
@@ -170,11 +187,12 @@
   - **Read Endpoint**: Read Replica (데이터 조회)
   - **집계 데이터**: 제품별 시간별(1시간, 6시간) / 일별 집계
     - 센서 데이터에는 고객 정보가 없으므로 제품별 집계만 수행
-- **Warm Layer**: Aurora PostgreSQL (기초 정보 + **일별 고객별 집계** + **계산식 적용 분석 데이터** + 알람 이력 + 에러 알림 처리 서비스 정보, CQRS 패턴)
+- **Warm Layer (DocumentDB)**: 제어/OTA/알람 이력 (Warm 데이터, CQRS 패턴)
+- **Warm Layer (Aurora)**: Aurora PostgreSQL (기초 정보 + **일별 고객별 집계** + **계산식 적용 분석 데이터** + 에러 알림 처리 서비스 정보, CQRS 패턴)
   - **Write Endpoint**: Primary Aurora (데이터 변경)
   - **Read Endpoint**: Read Replica (데이터 조회)
   - **집계 데이터**: 일별 고객별 제품별 집계
-    - DocumentDB의 제품별 일별 집계 + 기초 정보(deviceId → customerId) 조인 후 집계
+    - DocumentDB의 제품별 일별 집계 + 기초 정보(`device_id` → `customer_id`) 조인 후 집계
   - **분석 데이터**: 고객별 제품별 일별 데이터에 계산식 적용 결과
     - 관리 화면에서 조회하여 표시
 - **Cold Layer**: Apache Iceberg on S3 + Athena (장기 보관 및 분석)
@@ -199,14 +217,14 @@
 #### 실시간 대시보드
 - 실시간 데이터 시각화
 - KPI 지표 모니터링
-- 알람 현황 및 이력 관리
+- 알람 현황 및 이력 관리 (DocumentDB, Warm)
 
 ### 3. 원격 제어 및 OTA
 
 #### AWS IoT Device Shadow
 - 디바이스 상태 동기화
 - 원격 명령 전송 및 실행
-- 상태 변경 이력 추적
+- 상태 변경 이력 추적 (DocumentDB, Warm)
 
 #### OTA 업데이트
 - 무선 펌웨어 업데이트
@@ -339,9 +357,10 @@
 ### 기초 정보 통합
 - **DMS (Database Migration Service)**: 분산된 RDBMS 통합 마이그레이션
   - 지원 데이터베이스: MariaDB, MySQL, MSSQL, Oracle, PostgreSQL, MongoDB
-  - Full Load + CDC 방식
+  - Full Load + CDC 혼합 방식 (초기 적재 + 변경 동기화)
+  - 상황에 따라 Kinesis Data Streams로 CDC 변경사항 버퍼 처리
 - **CDC (Change Data Capture)**: 실시간 변경사항 동기화
-  - DMS CDC: RDBMS 트랜잭션 로그 기반 실시간 캡처
+  - DMS CDC: RDBMS 트랜잭션 로그 기반 실시간 캡처 → Kinesis 버퍼 처리 가능
   - MongoDB Change Streams: NoSQL 변경사항 스트리밍
   - DynamoDB Streams: DynamoDB 변경사항 캡처
 - **통합 Aurora PostgreSQL**: 모든 기초 정보를 통합 저장
@@ -355,7 +374,9 @@
 - **S3**: 원본 데이터 및 Iceberg 테이블 저장
 - **Apache Iceberg**: 테이블 형식 (ACID, 스키마 진화, 시간 여행)
 - **Amazon Athena**: SQL 쿼리 엔진
-- **Aurora PostgreSQL**: 기초 정보, 집계 결과, 알람 이력, 에러 알림 처리 서비스 정보
+- **DocumentDB (Warm)**: 제어/OTA/알람 이력
+- **Aurora PostgreSQL**: 기초 정보, 일별 고객별 집계, 계산식 적용 분석 데이터, 에러 알림 처리 서비스 정보
+  - **CQRS 패턴**: Write(Primary) / Read(Replica) 분리
 - **DocumentDB**: Hot 데이터 실시간 접근 (MongoDB 호환 NoSQL, CQRS 패턴)
   - **Write Endpoint**: Primary DocumentDB (데이터 변경)
   - **Read Endpoint**: Read Replica (데이터 조회)
@@ -372,16 +393,6 @@
 ### AI/ML 분석
 - **Bedrock**: LLM 기반 분석 (이상 탐지, 근본 원인 분석 (RCA))
 - **SageMaker**: ML 모델 기반 예측 분석, 시계열 예측
-
-### 기초 정보 통합
-- **DMS (Database Migration Service)**: 분산된 RDBMS 통합 마이그레이션
-  - 지원 데이터베이스: MariaDB, MySQL, MSSQL, Oracle, PostgreSQL, MongoDB
-  - Full Load + CDC 방식
-- **CDC (Change Data Capture)**: 실시간 변경사항 동기화
-  - DMS CDC: RDBMS 트랜잭션 로그 기반 실시간 캡처
-  - MongoDB Change Streams: NoSQL 변경사항 스트리밍
-  - DynamoDB Streams: DynamoDB 변경사항 캡처
-- **통합 Aurora PostgreSQL**: 모든 기초 정보를 통합 저장
 
 ### 인프라 및 보안
 - **VPC**: 격리된 네트워크 환경
@@ -418,7 +429,7 @@
 
 ### 포함 사항
 
-이 서비스는 다음과 같은 핵심 기능을 포함합니다:
+이 서비스의 주요 기능:
 
 1. **데이터 통합 플랫폼 구축**
    - 센서 데이터 통합 (다중 프로토콜 지원)

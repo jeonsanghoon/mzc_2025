@@ -7,9 +7,9 @@ export function SolutionSlide() {
   const coreFeatures = [
     {
       icon: Database,
-      title: '통합 데이터 플랫폼',
-      description: '7개 분산 시스템의 데이터를 단일 플랫폼으로 통합',
-      benefits: ['실시간 데이터 동기화', '표준화된 스키마', '데이터 품질 보장'],
+      title: '데이터 표준화 & 통합',
+      description: '다중 프로토콜/형식 데이터를 단일 스키마로 통합',
+      benefits: ['실시간 수집', '표준화 스키마', '데이터 품질 보장'],
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/10'
     },
@@ -42,26 +42,26 @@ export function SolutionSlide() {
   const solutionFlow = [
     {
       step: '01',
-      title: '데이터 수집',
-      description: '7개 시스템으로부터 실시간 데이터 수집',
+      title: '수집',
+      description: 'TCP/MQTT/REST 데이터 수집',
       icon: Database
     },
     {
       step: '02',
-      title: '지능형 분석',
-      description: 'AI 기반 패턴 분석 및 이상 탐지',
+      title: '표준화',
+      description: 'YAML 룰 기반 변환/검증',
       icon: BarChart3
     },
     {
       step: '03',
-      title: '자동 대응',
-      description: '예측 기반 자동 문제 해결',
+      title: '통합 분석',
+      description: 'AI 기반 이상 탐지 및 분석',
       icon: Zap
     },
     {
       step: '04',
-      title: '검증 및 학습',
-      description: '결과 검증 및 모델 개선',
+      title: '자동 대응',
+      description: '제어/OTA 기반 자동 조치',
       icon: CheckCircle2
     }
   ];
@@ -87,10 +87,10 @@ export function SolutionSlide() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4 bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent px-2 font-bold break-words">
-          데이터 통합 기반 지능형 솔루션
+          2. 데이터 표준화 & 통합
         </h2>
         <p className="text-base sm:text-lg md:text-xl text-slate-100 max-w-3xl mx-auto px-4 leading-relaxed font-medium break-words">
-          AI와 자동화 기술을 활용한 차세대 IoT 관리 플랫폼
+          다중 프로토콜/형식 데이터를 단일 스키마로 표준화하고 통합
         </p>
       </motion.div>
 

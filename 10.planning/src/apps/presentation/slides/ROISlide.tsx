@@ -148,7 +148,7 @@ export function ROISlide() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4 bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent px-2 font-bold break-words">
-          ROI & 비즈니스 임팩트
+          6. ROI & 비즈니스 임팩트
         </h2>
         <p className="text-base sm:text-lg md:text-xl text-slate-200 max-w-3xl mx-auto px-4 leading-relaxed font-medium break-words">
           투자 대비 수익률 분석 및 장기적 비즈니스 가치

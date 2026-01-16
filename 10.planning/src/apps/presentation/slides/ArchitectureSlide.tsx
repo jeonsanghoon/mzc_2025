@@ -17,7 +17,7 @@ export function ArchitectureSlide() {
     {
       name: '데이터 플랫폼 계층',
       description: 'Hot/Warm/Cold 저장 전략',
-      components: ['DocumentDB (Hot)', 'RDS (Warm)', 'S3 + Iceberg + Athena (Cold)', 'Data Lake'],
+      components: ['DocumentDB (Hot)', 'Aurora (Warm)', 'S3 + Iceberg + Athena (Cold)', 'Data Lake'],
       icon: Cloud,
       color: 'text-green-400',
       bgColor: 'bg-green-500/10',
@@ -73,7 +73,7 @@ export function ArchitectureSlide() {
   const techStack = [
     {
       category: '데이터 인프라',
-      technologies: ['Amazon Kinesis', 'AWS Lambda', 'Amazon S3', 'Amazon RDS'],
+      technologies: ['Amazon Kinesis', 'AWS Lambda', 'Amazon S3', 'Aurora PostgreSQL'],
       icon: Database
     },
     {
@@ -107,10 +107,10 @@ export function ArchitectureSlide() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4 bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent px-2 font-bold break-words">
-          시스템 아키텍처
+          3. 통합 데이터 플랫폼/아키텍처
         </h2>
         <p className="text-base sm:text-lg md:text-xl text-slate-100 max-w-3xl mx-auto px-4 leading-relaxed font-medium break-words">
-          확장 가능하고 안정적인 클라우드 네이티브 아키텍처
+          Hot/Warm/Cold 기반 확장형 데이터 플랫폼
         </p>
       </motion.div>
 

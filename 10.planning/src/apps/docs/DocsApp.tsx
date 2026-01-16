@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { FileText, BookOpen, GitBranch, ChevronRight, Play, Code2, ZoomIn, ZoomOut, Maximize2, RotateCcw, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import ReactMarkdown from "react-markdown";
+import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
 
@@ -66,19 +67,19 @@ function ProjectStructureDiagram() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-slate-700 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-slate-800 transition-colors">
-              DESIGN_GUIDE.md
+              설계 문서 가이드
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              SERVICE_OVERVIEW.md
+              서비스 개요
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              PROCESS_FLOW.md
+              프로세스 플로우
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              PROJECT_ANALYSIS.md
+              기술 분석
             </div>
             <div className="bg-orange-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-orange-600 transition-colors">
-              README.md
+              웹 앱 가이드
             </div>
           </div>
         </CardContent>
@@ -219,19 +220,19 @@ function ProjectStructureDiagram() {
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-slate-700 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-slate-800 transition-colors">
-              DESIGN_GUIDE.md
+              설계 문서 가이드
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              SERVICE_OVERVIEW.md
+              서비스 개요
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              PROCESS_FLOW.md
+              프로세스 플로우
             </div>
             <div className="bg-blue-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-blue-600 transition-colors">
-              PROJECT_ANALYSIS.md
+              기술 분석
             </div>
             <div className="bg-orange-500 text-white px-6 py-4 rounded-lg text-center font-semibold hover:bg-orange-600 transition-colors">
-              README.md
+              웹 앱 가이드
             </div>
           </div>
         </CardContent>
@@ -258,7 +259,13 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [fullscreenPosition, setFullscreenPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragStateRef = useRef({
+    isDragging: false,
+    isFullscreen: false,
+    startX: 0,
+    startY: 0,
+    zoom: 1,
+  });
 
   useEffect(() => {
     if (!diagram) return;
@@ -494,41 +501,50 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
   // 드래그 핸들러
   const handleMouseDown = (e: React.MouseEvent, isFullscreen = false) => {
     if (e.button !== 0) return; // 왼쪽 버튼만
-    setIsDragging(true);
+    const currentZoom = isFullscreen ? fullscreenZoom : zoom;
     const startPos = isFullscreen ? fullscreenPosition : position;
-    setDragStart({
-      x: e.clientX - startPos.x,
-      y: e.clientY - startPos.y,
-    });
+    dragStateRef.current = {
+      isDragging: true,
+      isFullscreen,
+      startX: e.clientX - startPos.x * currentZoom,
+      startY: e.clientY - startPos.y * currentZoom,
+      zoom: currentZoom,
+    };
+    setIsDragging(true);
   };
 
-  const handleMouseMove = (e: MouseEvent, isFullscreen = false) => {
-    if (!isDragging) return;
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const dragState = dragStateRef.current;
+    if (!dragState.isDragging) return;
     
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
+    const newX = (e.clientX - dragState.startX) / dragState.zoom;
+    const newY = (e.clientY - dragState.startY) / dragState.zoom;
     
-    if (isFullscreen) {
+    if (dragState.isFullscreen) {
       setFullscreenPosition({ x: newX, y: newY });
     } else {
       setPosition({ x: newX, y: newY });
     }
-  };
+  }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
+    if (!dragStateRef.current.isDragging) return;
+    dragStateRef.current.isDragging = false;
     setIsDragging(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', (e) => handleMouseMove(e, isFullscreenOpen));
+      window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mouseleave', handleMouseUp);
       return () => {
-        window.removeEventListener('mousemove', (e) => handleMouseMove(e, isFullscreenOpen));
+        window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mouseleave', handleMouseUp);
       };
     }
-  }, [isDragging, dragStart, isFullscreenOpen]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // 확대/축소 함수
   const handleZoomIn = (isFullscreen = false) => {
@@ -658,106 +674,117 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
 
   const currentZoom = isFullscreenOpen ? fullscreenZoom : zoom;
   const isProjectStructure = diagram.trim().includes("프로젝트 구성") || diagram.trim().includes("프로젝트구성");
+  const diagramStats = useMemo(() => {
+    const lines = diagram
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+    const edgeCount = (diagram.match(/-->|==>|---|-->|\.\.>/g) || []).length;
+    return {
+      lineCount: lines.length,
+      edgeCount,
+    };
+  }, [diagram]);
+  const isSimpleDiagram = !isProjectStructure && (diagramStats.lineCount <= 8 || diagramStats.edgeCount <= 6);
 
   return (
     <>
-      <div className={`my-4 sm:my-6 bg-gray-50 rounded-lg p-4 relative ${isProjectStructure ? 'project-structure-diagram' : ''}`}>
-        {/* 컨트롤 버튼 */}
-        <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-xl border-2 border-gray-300">
-          <Button
-            onClick={handleFitToScreen}
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-green-100 hover:!text-green-700 hover:[&_svg]:!text-green-700 hover:[&_span]:!text-green-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-            title="화면에 맞추기"
-          >
-            <Maximize2 className="h-4 w-4" />
-            <span className="text-xs">맞추기</span>
-          </Button>
-          <Button
-            onClick={handleReset}
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-orange-100 hover:!text-orange-700 hover:[&_svg]:!text-orange-700 hover:[&_span]:!text-orange-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-            title="초기화 (Ctrl/Cmd + 0)"
-          >
-            <RotateCcw className="h-4 w-4" />
-            <span className="text-xs">초기화</span>
-          </Button>
-          <Button
-            onClick={handleFullscreen}
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-purple-100 hover:!text-purple-700 hover:[&_svg]:!text-purple-700 hover:[&_span]:!text-purple-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-            title="전체 화면"
-          >
-            <Maximize2 className="h-4 w-4" />
-            <span className="text-xs">전체화면</span>
-          </Button>
-        </div>
+      <div className={`${isSimpleDiagram ? "my-2 sm:my-3 bg-transparent p-0" : "my-4 sm:my-6 bg-gray-50 rounded-lg p-4"} relative ${isProjectStructure ? 'project-structure-diagram' : ''}`}>
+        {!isSimpleDiagram && (
+          <>
+            {/* 컨트롤 버튼 */}
+            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur-sm rounded-lg p-1.5 shadow-xl border-2 border-gray-300">
+              <Button
+                onClick={() => handleFitToScreen()}
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-green-100 hover:!text-green-700 hover:[&_svg]:!text-green-700 hover:[&_span]:!text-green-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
+                title="화면에 맞추기"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="text-xs">맞추기</span>
+              </Button>
+              <Button
+                onClick={() => handleReset()}
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-orange-100 hover:!text-orange-700 hover:[&_svg]:!text-orange-700 hover:[&_span]:!text-orange-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
+                title="초기화 (Ctrl/Cmd + 0)"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="text-xs">초기화</span>
+              </Button>
+              <Button
+                onClick={handleFullscreen}
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 flex items-center gap-1.5 !text-gray-900 hover:!bg-purple-100 hover:!text-purple-700 hover:[&_svg]:!text-purple-700 hover:[&_span]:!text-purple-700 !font-semibold border border-gray-200 [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
+                title="전체 화면"
+              >
+                <Maximize2 className="h-4 w-4" />
+                <span className="text-xs">전체화면</span>
+              </Button>
+            </div>
 
-        {/* 줌 레벨 표시 및 컨트롤 */}
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-xl border-2 border-gray-300">
-          <Button
-            onClick={() => handleZoomOut(false)}
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
-            title="축소"
-          >
-            <span className="text-sm">-</span>
-          </Button>
-          <div className="text-sm font-bold text-gray-900 min-w-[50px] text-center">
-            {Math.round(zoom * 100)}%
-          </div>
-          <Button
-            onClick={() => handleZoomIn(false)}
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
-            title="확대"
-          >
-            <span className="text-sm">+</span>
-          </Button>
-        </div>
-        
-        {/* 키보드 단축키 안내 */}
-        <div className="absolute bottom-2 left-2 z-10 bg-blue-50/95 backdrop-blur-sm rounded-lg px-2 py-1 text-xs font-medium text-blue-900 shadow-lg border border-blue-200">
-          <span className="font-semibold">단축키:</span> Ctrl/Cmd + ↑↓ (확대/축소), 0 (초기화)
-          {zoom > 1 && <span className="ml-2">| 드래그로 이동</span>}
-        </div>
+            {/* 줌 레벨 표시 및 컨트롤 */}
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-lg px-2 py-1.5 shadow-xl border-2 border-gray-300">
+              <Button
+                onClick={() => handleZoomOut(false)}
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
+                title="축소"
+              >
+                <span className="text-sm">-</span>
+              </Button>
+              <div className="text-sm font-bold text-gray-900 min-w-[50px] text-center">
+                {Math.round(zoom * 100)}%
+              </div>
+              <Button
+                onClick={() => handleZoomIn(false)}
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
+                title="확대"
+              >
+                <span className="text-sm">+</span>
+              </Button>
+            </div>
+            
+          </>
+        )}
 
         {/* 다이어그램 컨테이너 */}
         <div 
           ref={containerRef}
-          className={`mermaid-container overflow-auto relative ${isProjectStructure ? 'flex flex-col items-center' : ''}`}
+          className={`mermaid-container ${isSimpleDiagram ? "overflow-visible" : "overflow-auto"} relative ${isProjectStructure ? 'flex flex-col items-center' : ''}`}
           style={{ 
-            maxHeight: "90vh",
-            minHeight: isProjectStructure ? "400px" : "600px",
-            cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+            maxHeight: isSimpleDiagram ? "none" : "90vh",
+            minHeight: isSimpleDiagram ? "auto" : (isProjectStructure ? "400px" : "600px"),
+            cursor: !isSimpleDiagram && zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
             width: isProjectStructure ? "100%" : "auto",
-            maxWidth: isProjectStructure ? "600px" : "none",
-            margin: isProjectStructure ? "0 auto" : "0",
+            maxWidth: isSimpleDiagram ? "700px" : (isProjectStructure ? "600px" : "none"),
+            margin: isProjectStructure || isSimpleDiagram ? "0 auto" : "0",
           }}
-          onMouseDown={(e) => zoom > 1 && handleMouseDown(e, false)}
+          onMouseDown={(e) => !isSimpleDiagram && zoom > 1 && handleMouseDown(e, false)}
         >
           <div
             className={isProjectStructure ? "flex flex-col items-center w-full" : "flex justify-center items-start"}
             style={{
-              transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+              transform: isSimpleDiagram ? "none" : `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
               transformOrigin: "center center",
-              transition: isDragging ? 'none' : 'transform 0.2s ease-in-out',
+              transition: isSimpleDiagram || isDragging ? 'none' : 'transform 0.2s ease-in-out',
               width: "100%",
-              height: "100%",
+              height: isSimpleDiagram ? "auto" : "100%",
             }}
           >
             <div
               dangerouslySetInnerHTML={{ __html: svgContent }}
-              className={isProjectStructure ? "w-full max-w-[600px] mx-auto" : ""}
+              className={isProjectStructure || isSimpleDiagram ? "w-full mx-auto" : ""}
               style={{
-                width: isProjectStructure ? "100%" : "100%",
-                maxWidth: isProjectStructure ? "600px" : "800px",
-                pointerEvents: zoom > 1 ? 'none' : 'auto',
+                width: "100%",
+                maxWidth: isSimpleDiagram ? "700px" : (isProjectStructure ? "600px" : "800px"),
+                pointerEvents: !isSimpleDiagram && zoom > 1 ? 'none' : 'auto',
               }}
             />
           </div>
@@ -765,62 +792,63 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
       </div>
 
       {/* 전체화면 모달 */}
-      <Dialog open={isFullscreenOpen} onOpenChange={setIsFullscreenOpen}>
-        <DialogContent className="!max-w-none !w-screen !h-screen !m-0 !p-4 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
-          <DialogHeader className="flex-shrink-0 pb-2">
-            <DialogTitle className="flex items-center justify-between">
-              <span>다이어그램 전체 보기</span>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => handleZoomOut(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
-                  title="축소"
-                >
-                  <span className="text-lg">-</span>
-                </Button>
-                <div className="text-base font-bold text-gray-900 min-w-[60px] text-center">
-                  {Math.round(fullscreenZoom * 100)}%
+      {!isSimpleDiagram && (
+        <Dialog open={isFullscreenOpen} onOpenChange={setIsFullscreenOpen}>
+          <DialogContent className="!max-w-none !w-screen !h-screen !m-0 !p-4 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 flex flex-col">
+            <DialogHeader className="flex-shrink-0 pb-2">
+              <DialogTitle className="flex items-center justify-between">
+                <span>다이어그램 전체 보기</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => handleZoomOut(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
+                    title="축소"
+                  >
+                    <span className="text-lg">-</span>
+                  </Button>
+                  <div className="text-base font-bold text-gray-900 min-w-[60px] text-center">
+                    {Math.round(fullscreenZoom * 100)}%
+                  </div>
+                  <Button
+                    onClick={() => handleZoomIn(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
+                    title="확대"
+                  >
+                    <span className="text-lg">+</span>
+                  </Button>
+                  <Button
+                    onClick={() => handleFitToScreen(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 !text-gray-900 hover:!bg-green-100 hover:!text-green-700"
+                    title="화면에 맞추기"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => handleReset(true)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 !text-gray-900 hover:!bg-orange-100 hover:!text-orange-700"
+                    title="초기화"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  onClick={() => handleZoomIn(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 !text-gray-900 hover:!bg-blue-100 hover:!text-blue-700 !font-bold"
-                  title="확대"
-                >
-                  <span className="text-lg">+</span>
-                </Button>
-                <Button
-                  onClick={() => handleFitToScreen(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 !text-gray-900 hover:!bg-green-100 hover:!text-green-700"
-                  title="화면에 맞추기"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  onClick={() => handleReset(true)}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-3 !text-gray-900 hover:!bg-orange-100 hover:!text-orange-700"
-                  title="초기화"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div 
-            ref={fullscreenContainerRef}
-            className="flex-1 overflow-hidden bg-gray-50 rounded-lg p-4 relative"
-            style={{
-              cursor: fullscreenZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-            }}
-            onMouseDown={(e) => fullscreenZoom > 1 && handleMouseDown(e, true)}
-          >
+              </DialogTitle>
+            </DialogHeader>
+            <div 
+              ref={fullscreenContainerRef}
+              className="flex-1 overflow-hidden bg-gray-50 rounded-lg p-4 relative"
+              style={{
+                cursor: fullscreenZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+              }}
+              onMouseDown={(e) => fullscreenZoom > 1 && handleMouseDown(e, true)}
+            >
             <div
               className="flex justify-center items-start"
               style={{
@@ -840,9 +868,10 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
                 }}
               />
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
@@ -931,7 +960,22 @@ function parseMarkdownSections(content: string) {
   let currentSection: { title: string; level: number; content: string; id: string } | null = null;
   let currentContent: string[] = [];
 
+  let inCodeBlock = false;
+
   for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("```")) {
+      inCodeBlock = !inCodeBlock;
+      currentContent.push(line);
+      continue;
+    }
+
+    // 코드 블록 내부는 헤딩으로 파싱하지 않음
+    if (inCodeBlock) {
+      currentContent.push(line);
+      continue;
+    }
+
     // 헤딩 매칭 (## 제목 형태)
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
     
@@ -972,6 +1016,26 @@ export function DocsApp() {
   const [sections, setSections] = useState<Array<{ title: string; level: number; content: string; id: string; category?: string }>>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(techCategories.map(c => c.id)));
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  const currentDocIndex = useMemo(() => docFiles.findIndex(doc => doc.file === selectedDoc), [selectedDoc]);
+  const prevDoc = currentDocIndex > 0 ? docFiles[currentDocIndex - 1] : null;
+  const nextDoc = currentDocIndex >= 0 && currentDocIndex < docFiles.length - 1 ? docFiles[currentDocIndex + 1] : null;
+  const activeSectionIndex = useMemo(
+    () => (activeSection ? sections.findIndex(s => s.id === activeSection) : -1),
+    [activeSection, sections]
+  );
+  const sectionProgress = useMemo(() => {
+    if (!sections.length || activeSectionIndex < 0) return 0;
+    return Math.round(((activeSectionIndex + 1) / sections.length) * 100);
+  }, [sections.length, activeSectionIndex]);
+
+  const goToSection = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
+    const docId = docFiles.find(d => d.file === selectedDoc)?.id;
+    if (docId) {
+      window.location.hash = `#docs/${docId}/${sectionId}`;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [selectedDoc]);
 
   // 해시 변경 감지 및 처리
   useEffect(() => {
@@ -988,17 +1052,7 @@ export function DocsApp() {
         // 문서 ID를 파일명으로 변환
         const docFile = docFiles.find(d => d.id === docId);
         if (docFile && selectedDoc !== docFile.file) {
-          loadDoc(docFile.file).then(() => {
-            // 문서 로드 후 섹션 설정
-            if (sectionId) {
-              setTimeout(() => {
-                const section = sections.find(s => s.id === sectionId);
-                if (section) {
-                  setActiveSection(sectionId);
-                }
-              }, 100);
-            }
-          });
+          loadDoc(docFile.file);
         } else if (sectionId && sections.length > 0) {
           // 문서는 이미 로드되어 있고 섹션만 변경
           const section = sections.find(s => s.id === sectionId);
@@ -1029,31 +1083,29 @@ export function DocsApp() {
       theme: "default",
       securityLevel: "loose",
       flowchart: {
-        useMaxWidth: false,
+        useMaxWidth: true,
         htmlLabels: true,
         curve: "basis",
-        nodeSpacing: 80,
-        rankSpacing: 120,
-        padding: 50,
+        nodeSpacing: 36,
+        rankSpacing: 56,
+        padding: 12,
         defaultRenderer: "dagre-wrapper",
-        diagramPadding: 30,
+        diagramPadding: 8,
       },
       gantt: {
         useMaxWidth: false,
       },
       themeVariables: {
-        fontSize: "22px",
-        fontFamily: "Arial, sans-serif",
+        fontSize: "16px",
+        fontFamily: "Inter, Arial, sans-serif",
         primaryColor: "#2196F3",
         primaryTextColor: "#fff",
         primaryBorderColor: "#1976D2",
         lineColor: "#333",
         secondaryColor: "#4CAF50",
         tertiaryColor: "#FF9800",
-        fontSize2: "20px",
-        fontSize3: "18px",
-        primaryBorderColor: "#1976D2",
-        primaryTextColor: "#fff",
+        fontSize2: "15px",
+        fontSize3: "14px",
         noteBkgColor: "#fff5ad",
         noteTextColor: "#333",
         noteBorderColor: "#aaa",
@@ -1072,7 +1124,6 @@ export function DocsApp() {
         sequenceNumberColor: "#fff",
         sectionBkgColor: "rgba(255, 255, 0, 0.1)",
         altBkgColor: "rgba(255, 255, 0, 0.1)",
-        critBkgColor: "rgba(255, 0, 0, 0.1)",
         doneBkgColor: "rgba(0, 255, 0, 0.1)",
         doneBorderColor: "rgba(0, 255, 0, 0.5)",
         activeBkgColor: "rgba(0, 255, 0, 0.2)",
@@ -1089,21 +1140,36 @@ export function DocsApp() {
         doneTaskBorderColor: "rgba(0, 255, 0, 0.5)",
         critBorderColor: "#ff8888",
         critBkgColor: "#ff0000",
-        taskTextColor: "#333",
-        taskTextOutsideColor: "#333",
-        taskTextLightColor: "#333",
-        taskTextClickableColor: "#003163",
-        activeTaskBorderColor: "#534fbc",
-        activeTaskBkgColor: "#f4f4f4",
-        gridColor: "#e0e0e0",
-        doneTaskBkgColor: "rgba(0, 255, 0, 0.1)",
-        doneTaskBorderColor: "rgba(0, 255, 0, 0.5)",
-        critBorderColor: "#ff8888",
-        critBkgColor: "#ff0000",
         todayLineColor: "#ff0000",
       },
     });
   }, []);
+
+  // 방향키로 이전/다음 섹션 이동
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+
+      if (!activeSection || sections.length === 0) return;
+
+      const currentIndex = sections.findIndex(s => s.id === activeSection);
+      if (currentIndex === -1) return;
+
+      if (event.key === "ArrowLeft" && currentIndex > 0) {
+        event.preventDefault();
+        goToSection(sections[currentIndex - 1].id);
+      } else if (event.key === "ArrowRight" && currentIndex < sections.length - 1) {
+        event.preventDefault();
+        goToSection(sections[currentIndex + 1].id);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeSection, sections, goToSection]);
 
   const loadDoc = async (fileName: string): Promise<void> => {
     setLoading(true);
@@ -1150,55 +1216,13 @@ export function DocsApp() {
     }
   };
 
-  // 해시 변경 감지 및 처리
-  useEffect(() => {
-    const handleHashChange = () => {
-      if (loading) return; // 로딩 중이면 무시
-      
-      const hash = window.location.hash.slice(1);
-      
-      if (hash.startsWith("docs/")) {
-        const parts = hash.replace("docs/", "").split("/");
-        const docId = parts[0];
-        const sectionId = parts[1];
-        
-        // 문서 ID를 파일명으로 변환
-        const docFile = docFiles.find(d => d.id === docId);
-        if (docFile && selectedDoc !== docFile.file) {
-          loadDoc(docFile.file).then(() => {
-            // 문서 로드 후 섹션 설정
-            if (sectionId) {
-              setTimeout(() => {
-                const section = sections.find(s => s.id === sectionId);
-                if (section) {
-                  setActiveSection(sectionId);
-                }
-              }, 100);
-            }
-          });
-        } else if (sectionId && sections.length > 0) {
-          // 문서는 이미 로드되어 있고 섹션만 변경
-          const section = sections.find(s => s.id === sectionId);
-          if (section) {
-            setActiveSection(sectionId);
-          }
-        }
-      } else if (hash === "docs") {
-        // 기본 문서 로드
-        if (!selectedDoc && docFiles.length > 0 && !loading) {
-          loadDoc(docFiles[0].file);
-        }
-      }
-    };
+  const goToDoc = (doc: (typeof docFiles)[number]) => {
+    loadDoc(doc.file);
+    window.location.hash = `#docs/${doc.id}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    // 초기 로드
-    handleHashChange();
-    
-    // 해시 변경 이벤트 리스너
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections, selectedDoc, loading]);
+  // 해시 변경 감지 useEffect 중복 제거
 
   // Mermaid 코드 블록 렌더링
   const components = {
@@ -1297,6 +1321,7 @@ export function DocsApp() {
                   {sections.map((section) => {
                     const isActive = activeSection === section.id;
                     const indentLevel = section.level > 2 ? (section.level - 2) * 8 : 0;
+                    const sectionIndex = sections.findIndex(s => s.id === section.id) + 1;
                     
                     return (
                       <Button
@@ -1308,15 +1333,9 @@ export function DocsApp() {
                             : "!text-gray-700 hover:!bg-gray-100 hover:!text-gray-900"
                         }`}
                         style={{ paddingLeft: `${8 + indentLevel}px` }}
-                        onClick={() => {
-                          setActiveSection(section.id);
-                          const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                          if (docId) {
-                            window.location.hash = `#docs/${docId}/${section.id}`;
-                          }
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
+                        onClick={() => goToSection(section.id)}
                       >
+                        <span className="font-normal text-[10px] sm:text-xs text-gray-400 mr-1">{sectionIndex}.</span>
                         <span className="font-normal flex-1 truncate text-left">{section.title}</span>
                       </Button>
                     );
@@ -1382,14 +1401,7 @@ export function DocsApp() {
                                       : "!text-gray-700 hover:!bg-gray-100 hover:!text-gray-900"
                                   }`}
                                   style={{ paddingLeft: `${8 + indentLevel}px` }}
-                                  onClick={() => {
-                                    setActiveSection(section.id);
-                                    const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                                    if (docId) {
-                                      window.location.hash = `#docs/${docId}/${section.id}`;
-                                    }
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  }}
+                                  onClick={() => goToSection(section.id)}
                                 >
                                   <span className="font-normal flex-1 truncate text-left">{section.title}</span>
                                 </Button>
@@ -1420,14 +1432,7 @@ export function DocsApp() {
                                   ? "!bg-blue-600 !text-white hover:!bg-blue-700" 
                                   : "!text-gray-700 hover:!bg-gray-100"
                               }`}
-                              onClick={() => {
-                                setActiveSection(section.id);
-                                const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                                if (docId) {
-                                  window.location.hash = `#docs/${docId}/${section.id}`;
-                                }
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
+                              onClick={() => goToSection(section.id)}
                             >
                               <span className="font-normal flex-1 truncate text-left">{section.title}</span>
                             </Button>
@@ -1459,11 +1464,30 @@ export function DocsApp() {
                     </CardDescription>
                   </div>
                   {activeSectionData && (
-                    <Badge variant="outline" className="text-xs sm:text-sm shrink-0">
-                      {sections.findIndex(s => s.id === activeSection) + 1} / {sections.length}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="text-xs sm:text-sm">
+                        {activeSectionIndex + 1} / {sections.length}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
+                        진행률 {sectionProgress}%
+                      </Badge>
+                    </div>
                   )}
                 </div>
+                {activeSectionData && (
+                  <div className="mt-3 sm:mt-4">
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                      <span>읽기 진행</span>
+                      <span>{sectionProgress}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 transition-all"
+                        style={{ width: `${sectionProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 
                 {/* 모바일 섹션 선택 드롭다운 */}
                 {selectedDoc && sections.length > 0 && (
@@ -1472,12 +1496,9 @@ export function DocsApp() {
                       value={activeSection || ""}
                       onChange={(e) => {
                         const sectionId = e.target.value;
-                        setActiveSection(sectionId);
-                        const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                        if (docId) {
-                          window.location.hash = `#docs/${docId}/${sectionId}`;
+                        if (sectionId) {
+                          goToSection(sectionId);
                         }
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
@@ -1514,6 +1535,7 @@ export function DocsApp() {
                       prose-img:rounded-lg prose-img:shadow-md prose-img:my-4 prose-img:max-w-full prose-img:h-auto">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeSlug]}
                         components={components}
                       >
                         {`# ${activeSectionData.title}\n\n${activeSectionData.content}`}
@@ -1521,51 +1543,67 @@ export function DocsApp() {
                     </div>
                     
                     {/* 네비게이션 버튼 */}
-                    <div className="flex items-center justify-between pt-4 sm:pt-6 border-t gap-4">
-                      {sections.findIndex(s => s.id === activeSection) > 0 ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm"
-                          onClick={() => {
-                            const currentIndex = sections.findIndex(s => s.id === activeSection);
-                            const prevSectionId = sections[currentIndex - 1].id;
-                            setActiveSection(prevSectionId);
-                            const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                            if (docId) {
-                              window.location.hash = `#docs/${docId}/${prevSectionId}`;
-                            }
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                        >
-                          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 rotate-180" />
-                          이전
-                        </Button>
-                      ) : (
-                        <div />
-                      )}
-                      {sections.findIndex(s => s.id === activeSection) < sections.length - 1 ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs sm:text-sm"
-                          onClick={() => {
-                            const currentIndex = sections.findIndex(s => s.id === activeSection);
-                            const nextSectionId = sections[currentIndex + 1].id;
-                            setActiveSection(nextSectionId);
-                            const docId = docFiles.find(d => d.file === selectedDoc)?.id;
-                            if (docId) {
-                              window.location.hash = `#docs/${docId}/${nextSectionId}`;
-                            }
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                        >
-                          다음
-                          <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
-                        </Button>
-                      ) : (
-                        <div />
-                      )}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-4 sm:pt-6 border-t gap-4">
+                      {(() => {
+                        const currentIndex = sections.findIndex(s => s.id === activeSection);
+                        const prevSection = currentIndex > 0 ? sections[currentIndex - 1] : null;
+                        const nextSection = currentIndex < sections.length - 1 ? sections[currentIndex + 1] : null;
+
+                        return (
+                          <>
+                            <div className="flex-1">
+                              {prevSection ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto text-xs sm:text-sm justify-start"
+                                  onClick={() => goToSection(prevSection.id)}
+                                >
+                                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 rotate-180" />
+                                  이전: {prevSection.title}
+                                </Button>
+                              ) : prevDoc ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto text-xs sm:text-sm justify-start"
+                                  onClick={() => goToDoc(prevDoc)}
+                                >
+                                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 rotate-180" />
+                                  이전 문서: {prevDoc.title}
+                                </Button>
+                              ) : (
+                                <div />
+                              )}
+                            </div>
+                            <div className="flex-1 text-right">
+                              {nextSection ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto text-xs sm:text-sm justify-end"
+                                  onClick={() => goToSection(nextSection.id)}
+                                >
+                                  다음: {nextSection.title}
+                                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                                </Button>
+                              ) : nextDoc ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto text-xs sm:text-sm justify-end"
+                                  onClick={() => goToDoc(nextDoc)}
+                                >
+                                  다음 문서: {nextDoc.title}
+                                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                                </Button>
+                              ) : (
+                                <div />
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

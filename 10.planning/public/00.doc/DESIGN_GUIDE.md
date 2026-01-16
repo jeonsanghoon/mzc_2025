@@ -2,9 +2,35 @@
 
 ## 📖 이 문서의 목적
 
-이 문서는 **설계 문서 모드**에서 프로젝트를 "처음 → 끝" 순서로 이해할 수 있도록 **문서 목록(역할/읽는 순서)**과 **대표 예시 시나리오**를 제공하는 가이드입니다.
+이 문서는 **설계 문서 모드**에서 프로젝트를 "처음 → 끝" 순서로 이해할 수 있도록 **문서 목록(역할/읽는 순서)**과 **대표 예시 시나리오**를 제공하는 가이드입니다. 특히 **다양한 종류의 데이터를 최대한 통합해 관리하는 목적**이 모든 문서에 일관되게 반영되도록 구성합니다.
 
 **이 문서를 먼저 읽으세요!** 각 설계 문서의 역할과 읽는 순서를 안내합니다.
+
+### ✅ 통합 관리 범위 (공통 전제)
+- **프로토콜**: TCP, MQTT, REST API
+- **데이터 형식**: Hex Binary, JSON, CSV
+- **원천 시스템**: IoT 센서, 파일 배치, RDBMS, NoSQL
+- **저장 계층**: DocumentDB(Hot), Aurora(Warm), S3+Iceberg(Cold)
+
+### 🧩 통합 대상 데이터 (유형별)
+| 유형 | 예시 | 주요 처리 |
+| --- | --- | --- |
+| 센서/텔레메트리 | 주기 데이터, 이벤트 데이터 | 표준화, 품질 검증, 집계 |
+| 제어/상태 | Shadow 명령, 제어 결과 | 제어 이력 저장, 상태 동기화 |
+| 펌웨어/OTA | 업데이트 요청, 상태 코드 | 배포/롤백 이력 관리 |
+| 파일/이미지/로그 | 이미지/로그 업로드 | 메타데이터 저장, S3 저장 |
+| 마스터/기초정보 | 고객/사이트/디바이스 | 조인/정합성 검증 |
+| 알람/이력 | 알람 발생/해제 | 룰 평가, 이력 저장 |
+
+### 🗃️ 데이터 유형별 저장소 매핑
+| 데이터 유형 | Hot (DocumentDB) | Warm (DocumentDB) | Warm (Aurora) | Cold (S3+Iceberg) |
+| --- | --- | --- | --- | --- |
+| 센서/텔레메트리 | 실시간 원본/요약 | - | 고객별 일별 집계 | 장기 보관 |
+| 제어/상태 | 최신 상태 | 제어 이력 | - | 장기 이력 |
+| 펌웨어/OTA | 진행 상태 | 배포/롤백 이력 | - | 장기 보관 |
+| 파일/이미지/로그 | 메타 캐시 | - | 메타데이터 | 원본 파일 |
+| 마스터/기초정보 | - | - | 정합성 기준 | 스냅샷 |
+| 알람/이력 | 실시간 알람 | 처리 이력 | - | 장기 분석 |
 
 ---
 
@@ -76,8 +102,23 @@
 
 ### 큰 흐름 (End-to-End)
 
-```
-[데이터 수집] → [스트리밍] → [처리] → [저장] → [분석] → [자동화] → [피드백]
+```mermaid
+flowchart LR
+    A[📥 데이터 수집<br/>TCP/MQTT/REST] --> B[🌊 스트리밍<br/>Kinesis Data Streams]
+    B --> C[⚙️ 처리<br/>Lambda 변환/표준화]
+    C --> D[💾 저장<br/>Hot/Warm/Cold]
+    D --> E[📊 분석<br/>Bedrock/SageMaker]
+    E --> F[🤖 자동화<br/>제어/OTA/알람]
+    F --> G[🔄 피드백<br/>모니터링/개선]
+    G -.->|지속적 개선| A
+    
+    style A fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    style C fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style D fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style E fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    style F fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style G fill:#e0f2f1,stroke:#004d40,stroke-width:2px
 ```
 
 #### 1. 수집 (Ingestion)
@@ -146,20 +187,15 @@
 
 4. **Lambda 변환/표준화**
    - **Lambda Function (Node.js 20.x, ESM)**이 YAML 룰을 읽어 Hex → JSON 변환
-   - 예시 변환 결과:
-     ```json
-     {
-       "ts": "2026-01-15T01:23:45Z",
-       "deviceId": "dev-9a12",
-       "productId": "prod-a",
-       "metrics": {
-         "tempC": 85.5,  // 임계값 80도 초과!
-         "rpm": 1620,
-         "voltage": 11.7
-       }
-     }
-     ```
-   - **Data Contract**로 스키마 검증 (필수 필드, 타입, 범위 체크)
+   - 변환 결과는 아래 플로우로 표현
+
+```mermaid
+flowchart LR
+  A[Hex Payload] --> B[Lambda 변환<br/>YAML 룰 적용]
+  B --> C[표준 JSON<br/>device_id, productId, metrics]
+  C --> D[Data Contract 검증<br/>필수 필드/타입/범위]
+  D --> E[이상 감지용 지표 생성]
+```
 
 5. **DocumentDB 저장 (Hot Layer)**
    - 표준화된 이벤트가 **DocumentDB Write Endpoint**에 저장
@@ -183,8 +219,9 @@
    - 온도가 정상 범위로 돌아오면 알람을 자동 종료
    - 실패 시 에스컬레이션 (기사 출동 또는 원격 지원)
 
-10. **이력 기록 (Aurora Warm Layer)**
-    - 알람 이력, 조치 내역, 에러 알림 처리 서비스 정보는 **Aurora Write Endpoint**에 기록
+10. **이력 기록 (DocumentDB Warm Layer)**
+    - 알람 이력, 조치 내역은 **DocumentDB Write Endpoint**에 기록 (Warm 데이터)
+    - 에러 알림 처리 서비스 정보는 **Aurora Write Endpoint**에 기록
     - 리포트 및 분석에 활용
 
 ### 예시 B) 데이터 집계 및 분석 데이터 생성
@@ -194,7 +231,7 @@
 #### 단계별 상세 설명
 
 1. **센서 데이터 수집**
-   - 센서 데이터는 `deviceId`, `productId`, `timestamp`, `metrics`만 포함 (고객 정보 없음)
+   - 센서 데이터는 `device_id`, `productId`, `device_timestamp`, `metrics`만 포함 (고객 정보 없음)
 
 2. **제품별 시간별/일별 집계 (DocumentDB)**
    - EventBridge 스케줄러가 1시간/6시간/일 단위로 트리거
@@ -205,7 +242,7 @@
 3. **고객별 제품별 일별 집계 (Aurora)**
    - EventBridge 스케줄러가 일 단위로 트리거 (매일 자정)
    - Lambda Function이 DocumentDB에서 제품별 일별 집계 조회
-   - Aurora의 기초 정보와 조인 (deviceId → siteId → customerId)
+   - Aurora의 기초 정보와 조인 (`device_id` → `site_id` → `customer_id`)
    - 고객별 제품별로 그룹화하여 일별 집계 계산
    - 집계 결과를 Aurora에 저장
 
@@ -223,32 +260,17 @@
 
 ## 🧩 예시 데이터 (샘플)
 
-### 1) 표준화된 텔레메트리(JSON) 예시
+### 1) 표준화된 텔레메트리(Flow) 예시
 
-**중요**: 센서 데이터에는 고객 정보(`customerId`, `siteId`)가 포함되지 않습니다. 센서 데이터는 디바이스 식별자(`deviceId`, `productId`)와 측정값(`metrics`)만 포함합니다. 고객 정보는 기초 데이터(Aurora)에서 `deviceId`를 통해 조인하여 얻습니다.
+**중요**: 센서 데이터에는 고객 정보(`customer_id`, `site_id`)가 포함되지 않습니다. 센서 데이터는 디바이스 식별자(`device_id`, `productId`)와 측정값(`metrics`)만 포함합니다. 고객 정보는 기초 데이터(Aurora)에서 `device_id`를 통해 조인하여 얻습니다.
 
-```json
-{
-  "device_id": "child-001",
-  "device_timestamp": "2026-01-15T01:23:45Z",
-  "hub_id": "hub-001",
-  "hub_timestamp": "2026-01-15T01:23:46Z",
-  "productId": "prod-a",
-  "childDeviceId": "child-001",
-  "metrics": {
-    "tempC": 78.2,
-    "rpm": 1620,
-    "voltage": 11.7,
-    "vibration": 0.5
-  },
-  "rawRef": {
-    "protocol": "mqtt",
-    "topic": "devices/hub-001/child-001/telemetry",
-    "kinesisSequenceNumber": "00000000000000000000000000000000000000000000000000",
-    "originalFormat": "hex"
-  },
-  "ingest_timestamp": "2026-01-15T01:23:47Z"
-}
+```mermaid
+flowchart LR
+  A[MQTT 토픽 수신<br/>devices/hub-001/child-001/telemetry] --> B[토픽 파싱<br/>hub_id, device_id]
+  B --> C[표준 텔레메트리 구조]
+  C --> D[metrics<br/>tempC/rpm/voltage/vibration]
+  C --> E[timestamps<br/>device/hub/ingest]
+  C --> F[rawRef<br/>protocol/topic/format]
 ```
 
 **필드 설명**:
@@ -291,6 +313,232 @@ autoAction: "restart-fan"
 
 ---
 
+## 📌 추가 예시 (일반화된 토픽/룰/업로드)
+
+### 1) 토픽 구조 (일반화)
+
+**기본 형식**:
+- `iotlink/{env}/{hub_id}/{device_id}/{type}/{direction}/{role}/{format}`
+- `env`: dev | stg | prd
+- `type`: periodic | event | tcp
+- `direction`: pub | sub
+- `role`: telemetry | alert_report | control_request | control_result
+- `format`: json | bin
+
+```mermaid
+flowchart LR
+  A[MQTT Topic 수신] --> B[토픽 파싱<br/>env/hub_id/device_id]
+  B --> C[message type 분기<br/>periodic/event/tcp]
+  C --> D[role 분기<br/>telemetry/alert/control]
+  D --> E[라우팅 처리<br/>Kinesis/Rule/Shadow]
+```
+
+### 2) IoT Rule 예시 (일반화)
+
+**주기 데이터 처리용 Rule**:
+- `Rule Name`: `periodic_rule`
+- `Topic`: `iotlink/+/+/+/periodic/+/+/+`
+
+```sql
+SELECT
+  *,
+  topic(1) AS env,
+  topic(2) AS hub_id,
+  topic(3) AS device_id,
+  topic(4) AS data_type,
+  topic(5) AS direction,
+  topic(6) AS role,
+  topic(7) AS format,
+  header.timestamp AS device_time,
+  timestamp() AS server_time
+FROM 'iotlink/+/+/+/periodic/+/+/+'
+```
+
+### 3) 프로비저닝 완료 이벤트 (일반화)
+
+```mermaid
+flowchart LR
+  A[디바이스 프로비저닝 완료] --> B[완료 이벤트 발행]
+  B --> C[Topic: iotlink/{env}/{hub_id}/{device_id}/event/pub/provisioning_complete/json]
+  C --> D[IoT Rule 수신]
+  D --> E[Device Registry 갱신]
+```
+
+### 4) 이미지 업로드 프로세스 (일반화)
+
+```mermaid
+flowchart LR
+  A[디바이스 업로드 요청] --> B[서버 Presigned URL 발급]
+  B --> C[S3 멀티파트 업로드]
+  C --> D[완료 이벤트 발행]
+  D --> E[메타데이터 DB 저장]
+```
+
+### 5) 공통 페이로드 구조 (일반화)
+
+**JSON 페이로드 기본 형태**:
+```json
+{
+  "hub_timestamp": 1756653767451,
+  "device_timestamp": 1756653767451,
+  "data": {
+    "metrics": {
+      "tempC": 26.3,
+      "rpm": 1200
+    }
+  },
+  "nodes": [
+    {
+      "device_id": "child-01",
+      "role": "EndDevice",
+      "parent": "hub-01"
+    }
+  ]
+}
+```
+
+**바이너리 페이로드 기본 형태**:
+```json
+{
+  "device_timestamp": 1756653767451,
+  "data": {
+    "bin": "HEX_OR_BASE64_PAYLOAD"
+  }
+}
+```
+
+```mermaid
+flowchart LR
+  A[원본 메시지] --> B[토픽 파싱]
+  B --> C[타임스탬프 정합화]
+  C --> D[표준 JSON 매핑]
+  D --> E[metrics/nodes 구성]
+```
+
+### 6) 주기 데이터 유형 (허브/단독/허브-차일드)
+
+```mermaid
+flowchart LR
+  A[허브 게이트웨이] --> B[허브 주기 데이터<br/>hub_id == device_id]
+  C[단독 디바이스] --> D[단독 주기 데이터<br/>hub_id = nohub]
+  E[허브-차일드] --> F[차일드 주기 데이터<br/>hub_id != device_id]
+```
+
+**허브 주기 데이터 토픽 예시**:
+- `iotlink/stg/hub-01/hub-01/periodic/pub/telemetry/json`
+
+**단독 주기 데이터 토픽 예시**:
+- `iotlink/stg/nohub/device-01/periodic/pub/telemetry/json`
+
+**허브-차일드 주기 데이터 토픽 예시**:
+- `iotlink/stg/hub-01/device-01/periodic/pub/telemetry/json`
+
+### 7) 제어 요청/응답 및 Shadow 흐름 (일반화)
+
+```mermaid
+flowchart LR
+  A[관리자 제어 요청] --> B[제어 요청 Topic 발행]
+  B --> C[디바이스 수신]
+  C --> D[제어 수행]
+  D --> E[제어 결과 Topic 발행]
+  E --> F[서버 상태 갱신]
+  C --> G[Shadow Delta 구독]
+  G --> H[Shadow GET 동기화]
+```
+
+**제어 요청 토픽 예시**:
+- `iotlink/{env}/{hub_id}/{device_id}/event/pub/control_request/json`
+
+**제어 결과 토픽 예시**:
+- `iotlink/{env}/{hub_id}/{device_id}/event/pub/control_result/json`
+
+---
+
+## 🧪 예제 코드 (샘플)
+
+### 1) Lambda 컨버트 모듈 (Node.js 20.x, ESM)
+
+```javascript
+// 파일: convert-handler.mjs
+export const handler = async (event) => {
+  const records = event.Records || [];
+  const outputs = [];
+
+  for (const record of records) {
+    const payload = Buffer.from(record.kinesis.data, "base64").toString("utf-8");
+    const parsed = JSON.parse(payload); // 예시: JSON 형식
+
+    // 토픽에서 hub_id, device_id 추출
+    const topic = parsed?.rawRef?.topic || "";
+    const parts = topic.split("/");
+    const hub_id = parts[1] || null;
+    const device_id = parts[3] || parts[1] || null;
+
+    outputs.push({
+      device_id,
+      device_timestamp: parsed.device_timestamp,
+      hub_id,
+      hub_timestamp: parsed.hub_timestamp,
+      productId: parsed.productId,
+      metrics: parsed.metrics,
+      rawRef: parsed.rawRef,
+      ingest_timestamp: new Date().toISOString(),
+    });
+  }
+
+  // 표준 JSON 반환 (다음 단계로 전달)
+  return outputs;
+};
+```
+
+### 2) DLQ 재처리 Lambda (실패 데이터 재처리)
+
+```javascript
+// 파일: dlq-retry.mjs
+export const handler = async (event) => {
+  for (const record of event.Records || []) {
+    const body = JSON.parse(record.body);
+
+    // 재처리 로직 (예: Kinesis 재적재)
+    await putToKinesis(body, process.env.RETRY_STREAM);
+  }
+};
+
+async function putToKinesis(payload, streamName) {
+  // 실제 구현에서는 AWS SDK v3 사용
+  console.log("retry -> kinesis", streamName, payload);
+}
+```
+
+### 3) CDC 버퍼 처리 Lambda (Kinesis → Aurora)
+
+```javascript
+// 파일: cdc-apply.mjs
+export const handler = async (event) => {
+  for (const record of event.Records || []) {
+    const change = JSON.parse(Buffer.from(record.kinesis.data, "base64").toString("utf-8"));
+
+    // 변경 이벤트 유형에 따라 UPSERT/DELETE 처리
+    if (change.op === "upsert") {
+      await upsertToAurora(change.table, change.data);
+    } else if (change.op === "delete") {
+      await deleteFromAurora(change.table, change.keys);
+    }
+  }
+};
+
+async function upsertToAurora(table, data) {
+  // 실제 구현에서는 SQL 템플릿 + 파라미터 바인딩
+  console.log("upsert", table, data);
+}
+
+async function deleteFromAurora(table, keys) {
+  console.log("delete", table, keys);
+}
+```
+
+---
+
 ## 🗺️ 구현 로드맵 (6단계)
 
 중복을 줄이기 위해 로드맵은 여기(가이드)에만 유지합니다.
@@ -309,7 +557,7 @@ autoAction: "restart-fan"
 ### 3단계: 모니터링 및 알람 (1개월)
 - 룰 엔진 구축
 - 알람/에스컬레이션 시스템
-- 이력 관리 (Aurora)
+- 이력 관리 (DocumentDB, Warm)
 
 ### 4단계: 원격 제어 및 OTA (1개월)
 - Shadow 제어 시스템

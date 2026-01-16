@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Progress } from "../../components/ui/progress";
-import { ArrowRight, ArrowLeft, Sparkles, Monitor, Presentation, FileText } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Presentation, Play } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 import { ProblemSlide } from "./slides/ProblemSlide";
@@ -29,37 +29,37 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
     },
     {
       id: "problem",
-      title: "현재 문제점",
+      title: "1. 데이터 문제 정의",
       component: <ProblemSlide />,
       bgColor: "from-red-500 to-orange-500",
     },
     {
       id: "solution",
-      title: "솔루션 개요",
+      title: "2. 데이터 표준화 & 통합",
       component: <SolutionSlide />,
       bgColor: "from-blue-500 to-teal-500",
     },
     {
       id: "architecture",
-      title: "시스템 아키텍처",
+      title: "3. 통합 데이터 플랫폼/아키텍처",
       component: <ArchitectureSlide />,
       bgColor: "from-purple-500 to-indigo-500",
     },
     {
       id: "benefits",
-      title: "핵심 기능 및 이점",
+      title: "4. 모니터링 · 제어 · 분석",
       component: <BenefitsSlide />,
       bgColor: "from-green-500 to-emerald-500",
     },
     {
       id: "roadmap",
-      title: "구현 로드맵",
+      title: "5. 구현 로드맵",
       component: <RoadmapSlide />,
       bgColor: "from-orange-500 to-yellow-500",
     },
     {
       id: "roi",
-      title: "ROI & 비즈니스 임팩트",
+      title: "6. ROI & 비즈니스 임팩트",
       component: <ROISlide />,
       bgColor: "from-pink-500 to-rose-500",
     },
@@ -102,22 +102,43 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [slides, currentSlide]);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     const next = (currentSlide + 1) % slides.length;
     setCurrentSlide(next);
     window.location.hash = `#presentation/${slides[next].id}`;
-  };
+  }, [currentSlide, slides]);
   
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     const prev = (currentSlide - 1 + slides.length) % slides.length;
     setCurrentSlide(prev);
     window.location.hash = `#presentation/${slides[prev].id}`;
-  };
+  }, [currentSlide, slides]);
   
-  const goToSlide = (index: number) => {
+  const goToSlide = useCallback((index: number) => {
     setCurrentSlide(index);
     window.location.hash = `#presentation/${slides[index].id}`;
-  };
+  }, [slides]);
+
+  // 방향키로 슬라이드 이동
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        nextSlide();
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        prevSlide();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [nextSlide, prevSlide]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
@@ -144,10 +165,10 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl mb-6 sm:mb-8 bg-gradient-to-r from-white via-blue-50 to-blue-100 bg-clip-text text-transparent px-2 font-black tracking-tight">
-                  데이터 통합 플랫폼
+                  지능형 IoT 관리 솔루션
                 </h1>
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-4 sm:mb-6 text-blue-50 px-2 font-semibold">
-                  지능형 IoT 관리 솔루션
+                  실시간 데이터 분석과 AI 기반 자동화
                 </h2>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed px-4 font-medium">
                   실시간 데이터 분석과 AI 기반 자동화를 통한
@@ -158,43 +179,23 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
               </motion.div>
             </div>
 
-            {/* 모드 선택 버튼 - 오른쪽 위 (첫 화면) */}
-            {onModeChange && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-                className="fixed top-4 right-4 z-50 flex gap-2"
+            {/* 프레젠테이션 시작 버튼 */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="flex justify-center"
+            >
+              <Button
+                onClick={nextSlide}
+                size="lg"
+                className="bg-white/95 text-purple-700 hover:bg-white text-base sm:text-lg font-semibold px-6 sm:px-8 py-5 sm:py-6 shadow-xl hover:shadow-2xl transition-all duration-300"
               >
-                <Button
-                  onClick={nextSlide}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 !bg-blue-600 !text-white hover:!bg-blue-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_span]:!text-white text-xs px-3 py-1.5 font-semibold shadow-lg !border-0 [&_svg]:!text-white [&_span]:!text-white"
-                >
-                  <Presentation className="h-3 w-3" />
-                  <span className="hidden sm:inline">프레젠테이션</span>
-                </Button>
-                <Button
-                  onClick={() => onModeChange("dashboard")}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 !bg-white !backdrop-blur-sm !border-2 !border-gray-300 !text-gray-900 hover:!bg-gray-100 hover:!text-gray-900 hover:[&_svg]:!text-gray-900 hover:[&_span]:!text-gray-900 text-xs px-3 py-1.5 shadow-md hover:shadow-lg transition-all font-semibold [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-                >
-                  <Monitor className="h-3 w-3" />
-                  <span className="hidden sm:inline">대시보드</span>
-                </Button>
-                <Button
-                  onClick={() => onModeChange("docs")}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 !bg-white !backdrop-blur-sm !border-2 !border-gray-300 !text-gray-900 hover:!bg-gray-100 hover:!text-gray-900 hover:[&_svg]:!text-gray-900 hover:[&_span]:!text-gray-900 text-xs px-3 py-1.5 shadow-md hover:shadow-lg transition-all font-semibold [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-                >
-                  <FileText className="h-3 w-3" />
-                  <span className="hidden sm:inline">설계 문서</span>
-                </Button>
-              </motion.div>
-            )}
+                <Presentation className="mr-2 h-5 w-5" />
+                <Play className="mr-2 h-4 w-4" />
+                프레젠테이션 시작
+              </Button>
+            </motion.div>
 
             {/* 하단 포인트 텍스트 */}
             <motion.div
@@ -230,43 +231,6 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
       {/* Content Slides */}
       {currentSlide > 0 && (
         <div className="min-h-screen flex flex-col">
-          {/* 모드 선택 셀렉트 박스 - 오른쪽 위 (다른 슬라이드에서) */}
-          {onModeChange && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed top-4 right-4 z-50 flex gap-2"
-            >
-              <Button
-                onClick={() => setCurrentSlide(0)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 !bg-blue-600 !text-white hover:!bg-blue-700 hover:!text-white hover:[&_svg]:!text-white hover:[&_span]:!text-white text-xs px-3 py-1.5 font-semibold shadow-lg !border-0 [&_svg]:!text-white [&_span]:!text-white"
-              >
-                <Presentation className="h-3 w-3" />
-                <span className="hidden sm:inline">프레젠테이션</span>
-              </Button>
-              <Button
-                onClick={() => onModeChange("dashboard")}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 !bg-white !backdrop-blur-sm !border-2 !border-gray-300 !text-gray-900 hover:!bg-gray-100 hover:!text-gray-900 hover:[&_svg]:!text-gray-900 hover:[&_span]:!text-gray-900 text-xs px-3 py-1.5 shadow-md hover:shadow-lg transition-all font-semibold [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-              >
-                <Monitor className="h-3 w-3" />
-                <span className="hidden sm:inline">대시보드</span>
-              </Button>
-              <Button
-                onClick={() => onModeChange("docs")}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 !bg-white !backdrop-blur-sm !border-2 !border-gray-300 !text-gray-900 hover:!bg-gray-100 hover:!text-gray-900 hover:[&_svg]:!text-gray-900 hover:[&_span]:!text-gray-900 text-xs px-3 py-1.5 shadow-md hover:shadow-lg transition-all font-semibold [&_svg]:!text-gray-900 [&_span]:!text-gray-900"
-              >
-                <FileText className="h-3 w-3" />
-                <span className="hidden sm:inline">설계 문서</span>
-              </Button>
-            </motion.div>
-          )}
-
           {/* Header */}
           <motion.header
             initial={{ y: -50, opacity: 0 }}

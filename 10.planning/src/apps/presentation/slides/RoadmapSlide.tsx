@@ -187,7 +187,7 @@ export function RoadmapSlide() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4 bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent px-2 font-bold break-words">
-          구현 로드맵
+          5. 구현 로드맵
         </h2>
         <p className="text-base sm:text-lg md:text-xl text-slate-100 max-w-3xl mx-auto px-4 leading-relaxed font-medium break-words">
           12개월간의 단계적 구현 계획 및 마일스톤

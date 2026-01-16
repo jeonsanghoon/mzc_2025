@@ -6,6 +6,7 @@ import { ArrowLeft, FileText } from 'lucide-react'
 import fs from 'fs'
 import path from 'path'
 import ReactMarkdown from 'react-markdown'
+import rehypeSlug from 'rehype-slug'
 import remarkGfm from 'remark-gfm'
 
 const docFiles: Record<string, string> = {
@@ -50,7 +51,7 @@ export default async function DocPage({ params }: { params: { id: string } }) {
         <Card className="bg-white">
           <CardContent className="p-8">
             <div className="prose prose-slate max-w-none">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>
                 {content}
               </ReactMarkdown>
             </div>

@@ -8,7 +8,7 @@ export function ProblemSlide() {
     {
       icon: XCircle,
       title: '데이터 문제',
-      description: 'RDBMS/NoSQL/File/IoT 장비별로 분산되어 통합 불가, 표준 스키마/시간대/단위/ID 불일치로 분석 불신, 실시간은 일부만 필요하지만 무분별 수집으로 장애 및 비용 증가',
+      description: 'RDBMS/NoSQL/File/IoT 장비별, TCP/MQTT/REST API 프로토콜별, Hex Binary/JSON/CSV 형식별 분산으로 통합 불가, 표준 스키마/시간대/단위/ID 불일치로 분석 불신, 실시간은 일부만 필요하지만 무분별 수집으로 장애 및 비용 증가',
       impact: '데이터 활용도 30%',
       color: 'text-blue-400',
       bgColor: 'bg-blue-500/20'
@@ -70,10 +70,10 @@ export function ProblemSlide() {
         className="text-center mb-4 sm:mb-6 md:mb-8"
       >
         <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3 sm:mb-4 bg-gradient-to-r from-red-400 via-orange-400 to-red-500 bg-clip-text text-transparent px-2 font-bold break-words">
-          현재 직면한 주요 문제점
+          1. 데이터 문제 정의
         </h2>
         <p className="text-base sm:text-lg md:text-xl text-slate-100 max-w-3xl mx-auto px-4 leading-relaxed font-medium break-words">
-          분산된 시스템과 수동적 관리 방식으로 인한 비효율성과 높은 운영 비용
+          분산된 데이터와 비표준 구조로 인한 운영 비효율과 비용 증가
         </p>
       </motion.div>
 

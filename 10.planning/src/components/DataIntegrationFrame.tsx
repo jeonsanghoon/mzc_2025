@@ -38,7 +38,7 @@ export function DataIntegrationFrame() {
   const integrationChallenges = [
     {
       problem:
-        "관계형데이터베이스/NoSQL/파일/사물인터넷 분산으로 통합 불가",
+        "RDBMS/NoSQL/File/IoT 장비별, TCP/MQTT/REST API 프로토콜별, Hex Binary/JSON/CSV 형식별 분산으로 통합 불가",
       currentState: "각 시스템별 개별 관리",
       solution: "통합 데이터레이크 + 표준 스키마 적용",
       implementation: [
@@ -362,8 +362,8 @@ export function DataIntegrationFrame() {
   ];
 
   const lifecycle = [
-    "자동화된 데이터 이동: 원데이터는 S3 Raw에서 Cold(Iceberg)로 순차 이관, 기초 정보는 RDS에 상시 유지, 집계·지표는 RDS에 최소 3년 보관",
-    "비용과 성능의 균형: 기초 정보 조회는 RDS, 빈도 높은 집계는 RDS, 히스토리 원데이터 드릴다운은 Athena로 Iceberg 테이블 쿼리 (RDS 기초 정보와 조인)",
+    "자동화된 데이터 이동: 원데이터는 S3 Raw에서 Cold(Iceberg)로 순차 이관, 기초 정보는 Aurora에 상시 유지, 집계·지표는 Aurora에 최소 3년 보관",
+    "비용과 성능의 균형: 기초 정보 조회는 Aurora, 빈도 높은 집계는 Aurora, 히스토리 원데이터 드릴다운은 Athena로 Iceberg 테이블 쿼리 (Aurora 기초 정보와 조인)",
     "규정 준수: 장기 보관·보존연한·삭제(파기) 정책을 워크플로우로 자동화, Iceberg 파티션 단위 관리",
   ];
 
@@ -379,7 +379,7 @@ export function DataIntegrationFrame() {
       {/* 헤더 */}
       <div className="text-center mb-4 sm:mb-8">
         <h2 className="mb-2 text-yellow-600 text-sm sm:text-base">
-          🟡 Frame 3. 구체적 데이터 통합 & 품질 관리
+          🟡 Frame 3. 통합 데이터 플랫폼/아키텍처
         </h2>
         <p className="text-muted-foreground text-sm">
           분산된 데이터 소스의 체계적 통합과 실시간 품질 관리를

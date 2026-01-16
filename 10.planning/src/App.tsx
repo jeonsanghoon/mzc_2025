@@ -116,6 +116,7 @@ export default function App() {
 
   return (
     <div>
+      <ModeButtons />
       <PresentationApp onModeChange={toggleMode} currentMode={mode} />
     </div>
   );

@@ -41,13 +41,13 @@ export function DashboardApp() {
     },
     {
       id: "schema",
-      title: "2. 데이터 표준화",
+      title: "2. 데이터 표준화 & 통합",
       icon: Database,
       color: "text-blue-500",
     },
     {
       id: "integration",
-      title: "3. 통합 데이터 플랫폼",
+      title: "3. 통합 데이터 플랫폼/아키텍처",
       icon: Cloud,
       color: "text-yellow-500",
     },
@@ -77,24 +77,26 @@ export function DashboardApp() {
     },
   ];
 
-  const [activeFrame, setActiveFrame] = useState<
+  type FrameId =
     | "problem"
     | "schema"
     | "integration"
     | "monitoring"
     | "control"
     | "analysis"
-    | "future"
-  >(() => {
+    | "future";
+
+  const [activeFrame, setActiveFrame] = useState<FrameId>(() => {
     // 초기 상태 설정 시 해시 확인
     const hash = window.location.hash.slice(1);
     if (hash.startsWith("dashboard/")) {
       const frameId = hash.replace("dashboard/", "");
       const frame = frames.find(f => f.id === frameId);
-      return frame ? (frameId as typeof activeFrame) : "problem";
+      return frame ? (frameId as FrameId) : "problem";
     }
     return "problem";
   });
+
 
   // 해시로 프레임 감지 및 업데이트
   useEffect(() => {
@@ -105,7 +107,7 @@ export function DashboardApp() {
         const frameId = hash.replace("dashboard/", "");
         const frame = frames.find(f => f.id === frameId);
         if (frame && frameId !== activeFrame) {
-          setActiveFrame(frameId as typeof activeFrame);
+          setActiveFrame(frameId as FrameId);
         }
       } else if (hash === "dashboard") {
         if (activeFrame !== "problem") {
@@ -122,6 +124,7 @@ export function DashboardApp() {
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [frames, activeFrame]);
+
 
   const renderFrameContent = () => {
     switch (activeFrame) {
@@ -146,52 +149,7 @@ export function DashboardApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="container mx-auto py-2 sm:py-8 px-2 sm:px-4">
-        {/* Header with Purple Gradient Background */}
-        <header className="relative mb-4 sm:mb-10 max-w-6xl mx-auto rounded-2xl overflow-hidden">
-          {/* Purple Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-purple-400 via-purple-600 to-purple-800"></div>
-          
-          {/* Content */}
-          <div className="relative px-6 sm:px-12 py-8 sm:py-16 text-center">
-            {/* Main Title */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 sm:mb-4 text-white">
-              데이터 통합 플랫폼
-            </h1>
-            
-            {/* Subtitle */}
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-4 sm:mb-6 text-white/95">
-              지능형 IoT 관리 솔루션
-            </h2>
-            
-            {/* Description Lines */}
-            <div className="space-y-2 mb-6 sm:mb-8">
-              <p className="text-sm sm:text-base md:text-lg text-white/90 font-medium">
-                실시간 데이터 분석과 AI 기반 자동화를 통한
-              </p>
-              <p className="text-xs sm:text-sm md:text-base text-white/85">
-                차세대 스마트 디바이스 관리 시스템
-              </p>
-            </div>
-            
-            {/* 프레젠테이션 시작 버튼 */}
-            <div className="flex justify-center">
-              <Button
-                onClick={() => {
-                  window.location.hash = "#presentation";
-                  window.location.reload();
-                }}
-                size="lg"
-                className="bg-white text-purple-700 hover:bg-purple-50 font-semibold px-8 py-6 shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-white/20"
-              >
-                <Presentation className="mr-2 h-5 w-5" />
-                <Play className="mr-2 h-4 w-4" />
-                프레젠테이션 시작
-              </Button>
-            </div>
-          </div>
-        </header>
-
+      <div className="container mx-auto pt-16 sm:pt-20 pb-4 sm:pb-8 px-2 sm:px-4">
         {/* Key Features Overview */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-10 auto-rows-fr">
           {/* Card 1 */}
