@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
-import { FileText, BookOpen, GitBranch, ChevronRight, Play, Code2, ZoomIn, ZoomOut, Maximize2, RotateCcw, X, Expand, Target, Flag } from "lucide-react";
+import { FileText, BookOpen, GitBranch, ChevronRight, Play, Code2, ZoomIn, ZoomOut, Maximize2, RotateCcw, X, Expand, Target, Flag, Layout } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import rehypeSlug from "rehype-slug";
@@ -13,6 +13,33 @@ import mermaid from "mermaid";
 type Perspective = "service" | "lab" | "customer" | "all";
 
 const docFiles = [
+  {
+    id: "project-goals",
+    title: "프로젝트 목표",
+    description: "🚩 서비스 목적, 운영 목표, 핵심 가치",
+    icon: Flag,
+    color: "text-blue-600",
+    file: "00_PROJECT_GOALS.md",
+    perspectives: ["service", "lab", "customer"] as Perspective[],
+  },
+  {
+    id: "frontend-requirements",
+    title: "프론트엔드 설계 요건",
+    description: "📌 관점별 화면 구성·권한 처리",
+    icon: Layout,
+    color: "text-amber-600",
+    file: "00_FRONTEND_REQUIREMENTS.md",
+    perspectives: ["service", "lab", "customer"] as Perspective[],
+  },
+  {
+    id: "data-goals",
+    title: "명확한 데이터 목표 (8개)",
+    description: "🎯 데이터 관점 핵심 목표",
+    icon: Target,
+    color: "text-indigo-600",
+    file: "00_DATA_GOALS.md",
+    perspectives: ["service", "lab", "customer"] as Perspective[],
+  },
   {
     id: "design-guide",
     title: "0. 설계 문서 가이드",
@@ -1938,33 +1965,7 @@ export function DocsApp() {
     });
   }, []);
 
-  // 방향키로 이전/다음 섹션 이동
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("input, textarea, select, [contenteditable='true']")) {
-        return;
-      }
-
-      if (!activeSection || sections.length === 0) return;
-
-      const currentIndex = sections.findIndex(s => s.id === activeSection);
-      if (currentIndex === -1) return;
-
-      if (event.key === "ArrowLeft" && currentIndex > 0) {
-        event.preventDefault();
-        goToSection(sections[currentIndex - 1].id);
-      } else if (event.key === "ArrowRight" && currentIndex < sections.length - 1) {
-        event.preventDefault();
-        goToSection(sections[currentIndex + 1].id);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeSection, sections, goToSection]);
-
-  const loadDoc = async (fileName: string): Promise<void> => {
+  const loadDoc = async (fileName: string, opts?: { activateLastSection?: boolean }): Promise<void> => {
     setLoading(true);
     try {
       const response = await fetch(`/00.doc/${fileName}`);
@@ -1984,11 +1985,11 @@ export function DocsApp() {
         const hash = window.location.hash.slice(1);
         const hashSectionId = hash.startsWith(`docs/${docId}/`) ? hash.replace(`docs/${docId}/`, "") : null;
         
-        // 첫 번째 섹션을 활성화 (해시에 섹션이 없으면)
+        // 첫·마지막 섹션 활성화 (해시에 섹션이 없으면; 이전 문서로 갈 땐 마지막 섹션)
         if (parsedSections.length > 0) {
           const sectionId = hashSectionId && parsedSections.find(s => s.id === hashSectionId) 
             ? hashSectionId 
-            : parsedSections[0].id;
+            : (opts?.activateLastSection ? parsedSections[parsedSections.length - 1].id : parsedSections[0].id);
           setActiveSection(sectionId);
           
           // 해시 업데이트 (현재 해시와 다를 때만) - 히스토리에 추가하지 않음 (로딩 중이므로)
@@ -2010,14 +2011,44 @@ export function DocsApp() {
     }
   };
 
-  const goToDoc = (doc: (typeof docFiles)[number]) => {
-    // window.location.hash를 사용하면 자동으로 hashchange 이벤트 발생 및 히스토리 추가
+  const goToDoc = (doc: (typeof docFiles)[number], goOpts?: { toLastSection?: boolean }) => {
     window.location.hash = `#docs/${doc.id}`;
-    loadDoc(doc.file);
+    loadDoc(doc.file, { activateLastSection: goOpts?.toLastSection });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 해시 변경 감지 useEffect 중복 제거
+  // 방향키·화살표: 섹션 단위 이동, 마지막/첫 섹션에서 다음/이전 문서로
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (!activeSection || sections.length === 0) return;
+
+      const currentIndex = sections.findIndex(s => s.id === activeSection);
+      if (currentIndex === -1) return;
+
+      if (event.key === "ArrowLeft") {
+        if (currentIndex > 0) {
+          event.preventDefault();
+          goToSection(sections[currentIndex - 1].id);
+        } else if (prevDoc) {
+          event.preventDefault();
+          goToDoc(prevDoc, { toLastSection: true });
+        }
+      } else if (event.key === "ArrowRight") {
+        if (currentIndex < sections.length - 1) {
+          event.preventDefault();
+          goToSection(sections[currentIndex + 1].id);
+        } else if (nextDoc) {
+          event.preventDefault();
+          goToDoc(nextDoc);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeSection, sections, goToSection, nextDoc, prevDoc, goToDoc]);
 
   // Mermaid 코드 블록 렌더링
   const components = {
@@ -2068,71 +2099,6 @@ export function DocsApp() {
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">설계 문서</h1>
           <p className="text-sm sm:text-base text-gray-600">프로젝트의 전체 설계 문서를 단계별로 확인할 수 있습니다.</p>
-        </div>
-
-        {/* 프로젝트 목표 — 설계 초기 화면 상단 표기 */}
-        <div className="mb-4 sm:mb-6">
-          <Card className="bg-white border-2 border-blue-200 shadow-sm">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-blue-900">
-                <Flag className="h-4 w-4 text-blue-600" />
-                <span>프로젝트 목표</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-gray-600 mt-1">
-                <strong>서비스 목적</strong> — 분산된 IoT 데이터를 통합하고, 프로토콜/형식/저장소가 다른 데이터까지 폭넓게 통합 관리하며, 실시간 모니터링·원격 제어·AI 기반 분석을 통해 <strong>무중단 서비스를 지원하는 지능형 IoT 관리 플랫폼</strong>을 제공합니다.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0 space-y-2">
-              <p className="text-xs sm:text-sm text-gray-700">
-                <strong>운영 목표</strong> — 데이터 수집 → 모니터링 → 알림 발생 → 제어/OTA 처리 → 기사 출동 처리 → 제품 개선을 통한 <strong>무중단 서비스 지원</strong>
-              </p>
-              <p className="text-xs sm:text-sm text-gray-700">
-                <strong>핵심 가치</strong> — 데이터 활용도·복구 시간·알람 정확도 개선, 현장 출동 축소(자동 해결률 85%), 운영비 절감 40%. 상세는 서비스 개요, 아래 데이터 목표(8개) 및 설계 문서를 참고하세요.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 프론트엔드 설계 시 관점별 화면 구성·권한 처리 필요 (관점별 보기 필터 아님) */}
-        <div className="mb-4 sm:mb-6">
-          <Card className="bg-amber-50/80 border border-amber-200">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-amber-900">
-                <span>📌</span>
-                <span>프론트엔드 설계 요건</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-amber-800">
-                설계·구현 시 <strong>관점별 화면 구성</strong> 및 <strong>권한 처리</strong>가 필요합니다. (서비스 / 연구소 / 고객 관점)
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-
-        {/* 데이터 목표 (8개) — 설계 문서 웹 화면에 상시 표기 */}
-        <div className="mb-4 sm:mb-6">
-          <Card className="bg-slate-50/90 border border-slate-200">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-slate-800">
-                <Target className="h-4 w-4 text-indigo-600" />
-                <span>명확한 데이터 목표 (8개)</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-slate-600 mt-1">
-                본 프로젝트의 데이터 관점 핵심 목표입니다. 상세는 설계 문서 가이드·서비스 개요를 참고하세요.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 pt-0">
-              <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs sm:text-sm text-slate-700 list-decimal list-inside">
-                <li><strong>다채널 데이터 원활한 수집</strong> — 기초데이터·IoT 센서 데이터를 TCP·MQTT·REST 등 여러 채널에서 끊김 없이 수집</li>
-                <li><strong>제품별 YAML 관리를 통한 데이터 통합</strong> — 제품·형식별 YAML 스펙으로 변환·표준화하여 단일 플랫폼에서 통합</li>
-                <li><strong>알람 룰셋 등록에 따른 알람 자동화</strong> — 제품별 룰셋 등록 시 룰 엔진으로 알람 자동 발생·분류·에스컬레이션 수행</li>
-                <li><strong>알람 장비 원격제어·FoTA를 통한 정비</strong> — Device Shadow·FoTA로 알람 장비 원격 제어 및 정비</li>
-                <li><strong>AS 기사 알림 처리</strong> — 알람·에스컬레이션에 따른 AS 기사 알림·배차·처리 이력 관리</li>
-                <li><strong>연구소 분석 데이터 생성</strong> — 연구소 관점의 집계·이상탐지·RCA·예측 등 분석 데이터 생성·활용</li>
-                <li><strong>서비스 분석데이터 및 관련 서비스 데이터 관리</strong> — 서비스 관점 분석데이터와 고객·제품별 서비스 데이터의 저장·조회·관리</li>
-                <li><strong>향후 AI·LLM 기반 자동화</strong> — AI 이상탐지·예측, LLM 분석·보고 자동화, 자동 대응 룰 고도화 등으로 확장</li>
-              </ol>
-            </CardContent>
-          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
@@ -2329,7 +2295,7 @@ export function DocsApp() {
                                   variant="outline"
                                   size="sm"
                                   className="w-full sm:w-auto text-xs sm:text-sm justify-start"
-                                  onClick={() => goToDoc(prevDoc)}
+                                  onClick={() => goToDoc(prevDoc, { toLastSection: true })}
                                 >
                                   <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 rotate-180" />
                                   이전 문서: {prevDoc.title}

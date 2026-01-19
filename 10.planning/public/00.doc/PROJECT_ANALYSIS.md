@@ -36,7 +36,7 @@
 | 5 | AS 기사 알림 처리 | SNS·이메일·앱, 알람 이력(DocumentDB Warm) |
 | 6 | 연구소 분석 데이터 생성 | 집계 Lambda, Bedrock·SageMaker, Cold(Iceberg·Athena) |
 | 7 | 서비스 분석데이터 및 관련 서비스 데이터 관리 | Aurora 집계·기초정보, DocumentDB, 대시보드·리포트 |
-| 8 | 향후 AI·LLM 기반 자동화 | Bedrock LLM, SageMaker, 자동 대응 룰 고도화 |
+| 8 | 향후 AI·LLM 기반 자동화 | Bedrock LLM, SageMaker 등 — **※ 별도 프로젝트** |
 
 ### 데이터 유형별 저장소 매핑
 | 데이터 유형 | Hot (DocumentDB) | Warm (DocumentDB) | Warm (Aurora) | Cold (S3+Iceberg) |
