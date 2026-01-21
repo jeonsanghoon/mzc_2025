@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useSwipeNavigation } from "../../hooks/useSwipeNavigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -2018,6 +2019,33 @@ export function DocsApp() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const goToPrev = useCallback(() => {
+    if (!activeSection || sections.length === 0) return;
+    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    if (currentIndex === -1) return;
+    if (currentIndex > 0) {
+      goToSection(sections[currentIndex - 1].id);
+    } else if (prevDoc) {
+      goToDoc(prevDoc, { toLastSection: true });
+    }
+  }, [activeSection, sections, goToSection, prevDoc, goToDoc]);
+
+  const goToNext = useCallback(() => {
+    if (!activeSection || sections.length === 0) return;
+    const currentIndex = sections.findIndex((s) => s.id === activeSection);
+    if (currentIndex === -1) return;
+    if (currentIndex < sections.length - 1) {
+      goToSection(sections[currentIndex + 1].id);
+    } else if (nextDoc) {
+      goToDoc(nextDoc);
+    }
+  }, [activeSection, sections, goToSection, nextDoc, goToDoc]);
+
+  const swipeRef = useSwipeNavigation({
+    onSwipeRight: goToPrev,
+    onSwipeLeft: goToNext,
+  });
+
   // 방향키·화살표: 섹션 단위 이동, 마지막/첫 섹션에서 다음/이전 문서로
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -2095,7 +2123,7 @@ export function DocsApp() {
   const activeSectionData = sections.find(s => s.id === activeSection);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-3 sm:p-4 md:p-6">
+    <div ref={swipeRef} className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-3 sm:p-4 md:p-6">
       <div className="max-w-[1920px] mx-auto">
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>

@@ -1,0 +1,8 @@
+{
+  "name": "yaml-transform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "1단계: 제품별 YAML 기반 데이터 변환 (Node 20.x ESM)",
+  "main": "index.mjs"
+}

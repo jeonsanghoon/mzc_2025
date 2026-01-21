@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useSwipeNavigation } from "../../hooks/useSwipeNavigation";
 import {
   Card,
   CardContent,
@@ -125,6 +126,28 @@ export function DashboardApp() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [frames, activeFrame]);
 
+  const goToPrevFrame = useCallback(() => {
+    const idx = frames.findIndex((f) => f.id === activeFrame);
+    if (idx > 0) {
+      const prev = frames[idx - 1];
+      setActiveFrame(prev.id as FrameId);
+      window.location.hash = `#solution/${prev.id}`;
+    }
+  }, [frames, activeFrame]);
+
+  const goToNextFrame = useCallback(() => {
+    const idx = frames.findIndex((f) => f.id === activeFrame);
+    if (idx >= 0 && idx < frames.length - 1) {
+      const next = frames[idx + 1];
+      setActiveFrame(next.id as FrameId);
+      window.location.hash = `#solution/${next.id}`;
+    }
+  }, [frames, activeFrame]);
+
+  const swipeRef = useSwipeNavigation({
+    onSwipeRight: goToPrevFrame,
+    onSwipeLeft: goToNextFrame,
+  });
 
   const renderFrameContent = () => {
     switch (activeFrame) {
@@ -148,7 +171,7 @@ export function DashboardApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div ref={swipeRef} className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="container mx-auto pt-16 sm:pt-20 pb-4 sm:pb-8 px-2 sm:px-4">
         {/* Key Features Overview */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-4 sm:mb-10 auto-rows-fr">

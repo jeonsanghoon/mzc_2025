@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSwipeNavigation } from "../../hooks/useSwipeNavigation";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -140,8 +141,13 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide]);
 
+  const swipeRef = useSwipeNavigation({
+    onSwipeRight: prevSlide,
+    onSwipeLeft: nextSlide,
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
+    <div ref={swipeRef} className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden">
       {/* Title Slide */}
       {currentSlide === 0 && (
         <motion.div

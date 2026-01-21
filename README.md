@@ -50,6 +50,8 @@
 
 ```
 mzc_2026/
+├── infra/                       # Lambda (1단계 데이터 수집·통합)
+│   └── lambda/                  # Node 20.x ESM (yaml-transform 등)
 ├── 10.planning/                 # 메인 앱 (Vite) — 배포·실행 대상
 │   ├── 00.doc/                  # 설계 문서
 │   │   ├── 00_PROJECT_GOALS.md
