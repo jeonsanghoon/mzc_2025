@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
-import { Database, Zap, BarChart3, Settings, Shield, CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
+import { Database, Zap, BarChart3, Settings, Shield, CheckCircle2, ArrowRight, Sparkles, Bell, UserCheck, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export function SolutionSlide() {
@@ -54,15 +54,27 @@ export function SolutionSlide() {
     },
     {
       step: '03',
-      title: '통합 분석',
-      description: 'AI 기반 이상 탐지 및 분석',
-      icon: Zap
+      title: '실시간 알림 처리',
+      description: '룰 기반 알람·경고 발생·확인 → 제어/OTA·기사 출동 등으로 처리',
+      icon: Bell
     },
     {
       step: '04',
-      title: '자동 대응',
-      description: '제어/OTA 기반 자동 조치',
-      icon: CheckCircle2
+      title: '통합 분석',
+      description: 'AI 기반 이상 탐지 및 분석 (마지막 분석 단계)',
+      icon: Zap
+    },
+    {
+      step: '05',
+      title: '분석 알림·데이터 처리',
+      description: '분석에 의한 알림 반영 → 제어/OTA·기사 출동 등으로 처리',
+      icon: Activity
+    },
+    {
+      step: '06',
+      title: '제어/OTA·기사 출동',
+      description: '실시간·분석 알림 모두 수렴, 제어/OTA 자동 조치 또는 기사 출동 등',
+      icon: UserCheck
     }
   ];
 

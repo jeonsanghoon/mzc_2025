@@ -65,7 +65,7 @@ export default function App() {
     const inactiveButtonClass = "!bg-white !backdrop-blur-sm !border-2 !border-gray-300 !text-gray-900 hover:!bg-gray-100 hover:!text-gray-900 hover:[&_svg]:!text-gray-900 hover:[&_span]:!text-gray-900 shadow-md hover:shadow-lg";
 
     return (
-      <div className="fixed top-4 right-4 z-50 flex gap-2">
+      <div className="fixed right-4 z-50 flex gap-2" style={{ top: 'max(3.5rem, env(safe-area-inset-top, 0px))' }}>
         <Button
           onClick={() => toggleMode("presentation")}
           variant="outline"

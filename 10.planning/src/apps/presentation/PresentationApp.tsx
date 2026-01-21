@@ -241,7 +241,7 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
           <motion.header
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="pt-16 pb-2 px-2 sm:pt-6 sm:pb-4 sm:px-4 md:px-6 border-b border-white/20"
+            className="pt-24 pb-2 pl-2 pr-28 sm:pb-4 sm:pl-4 sm:pr-80 md:pl-6 md:pr-80 border-b border-white/20"
           >
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-4">
