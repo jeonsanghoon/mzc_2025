@@ -19,7 +19,7 @@ export function BenefitsSlide() {
     },
     {
       icon: BarChart3,
-      title: '지능형 분석',
+      title: '통합 분석',
       description: 'AI 기반 예측 분석 및 패턴 인식',
       metrics: [
         { label: '알람 정확도', value: 98, unit: '%', improvement: '+68%' },
@@ -321,7 +321,7 @@ export function BenefitsSlide() {
           🎯 연간 운영비 40% 절감 및 서비스 품질 90% 향상
         </h4>
         <p className="text-slate-100 text-sm sm:text-base font-medium break-words">
-          완전 자동화된 지능형 시스템으로 혁신적인 운영 효율성 달성
+          데이터 통합 기반 자동화 시스템으로 혁신적인 운영 효율성 달성
         </p>
       </motion.div>
     </motion.div>

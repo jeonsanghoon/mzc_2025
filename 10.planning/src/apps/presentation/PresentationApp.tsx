@@ -171,13 +171,13 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl mb-6 sm:mb-8 bg-gradient-to-r from-white via-blue-50 to-blue-100 bg-clip-text text-transparent px-2 font-black tracking-tight">
-                  지능형 IoT 관리 솔루션
+                  데이터 통합 솔루션
                 </h1>
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-4 sm:mb-6 text-blue-50 px-2 font-semibold">
-                  실시간 데이터 분석과 AI 기반 자동화
+                  실시간 데이터 통합·분석과 자동화
                 </h2>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed px-4 font-medium">
-                  실시간 데이터 분석과 AI 기반 자동화를 통한
+                  실시간 데이터 통합·분석과 자동화를 통한
                   <br className="hidden sm:block" />
                   <span className="sm:hidden"> </span>차세대
                   스마트 디바이스 관리 시스템
@@ -249,7 +249,7 @@ export function PresentationApp({ onModeChange, currentMode = "presentation" }: 
                   className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-gradient-to-r ${slides[currentSlide].bgColor}`}
                 />
                 <h1 className="text-lg sm:text-xl md:text-2xl font-semibold">
-                  데이터 통합 플랫폼
+                  데이터 통합 솔루션
                 </h1>
               </div>
               <div className="flex items-center gap-2 sm:gap-4">

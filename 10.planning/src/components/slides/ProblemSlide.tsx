@@ -179,7 +179,7 @@ export function ProblemSlide() {
           이러한 문제들을 해결하기 위한 통합 솔루션이 필요합니다
         </h4>
         <p className="text-slate-300">
-          데이터 통합 플랫폼을 통한 지능형 자동화가 해답입니다
+          데이터 통합 플랫폼을 통한 자동화가 해답입니다
         </p>
       </motion.div>
     </motion.div>

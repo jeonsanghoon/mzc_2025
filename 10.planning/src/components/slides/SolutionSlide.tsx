@@ -15,7 +15,7 @@ export function SolutionSlide() {
     },
     {
       icon: BarChart3,
-      title: 'AI 기반 지능형 분석',
+      title: '통합 분석',
       description: '기계학습을 활용한 예측 분석 및 이상 탐지',
       benefits: ['패턴 기반 예측', '근본 원인 분석', '자동 알람 필터링'],
       color: 'text-purple-400',
@@ -48,8 +48,8 @@ export function SolutionSlide() {
     },
     {
       step: '02',
-      title: '지능형 분석',
-      description: 'AI 기반 패턴 분석 및 이상 탐지',
+      title: '통합 분석',
+      description: '패턴 분석 및 이상 탐지',
       icon: BarChart3
     },
     {
@@ -87,10 +87,10 @@ export function SolutionSlide() {
         className="text-center"
       >
         <h2 className="text-4xl mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-          데이터 통합 기반 지능형 솔루션
+          데이터 통합 솔루션
         </h2>
         <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-          AI와 자동화 기술을 활용한 차세대 IoT 관리 플랫폼
+          데이터 통합 기반 차세대 IoT 관리 솔루션
         </p>
       </motion.div>
 
@@ -224,7 +224,7 @@ export function SolutionSlide() {
         className="text-center bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-6"
       >
         <h4 className="text-xl text-white mb-2">
-          🚀 완전 자동화된 지능형 IoT 관리 플랫폼
+          🚀 데이터 통합 솔루션
         </h4>
         <p className="text-slate-300">
           데이터 → 분석 → 예측 → 자동 해결의 완전한 자동화 사이클

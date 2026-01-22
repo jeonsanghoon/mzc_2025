@@ -66,7 +66,7 @@ export function DashboardApp() {
     },
     {
       id: "analysis",
-      title: "6. 지능형 분석",
+      title: "6. 통합 분석",
       icon: Brain,
       color: "text-indigo-500",
     },
@@ -249,7 +249,7 @@ export function DashboardApp() {
                 <BarChart3 className="h-5 w-5 text-orange-500" />
                 <div>
                   <div className="font-medium">
-                    지능형 패턴 분석 및 이상 탐지
+                    패턴 분석 및 이상 탐지
                   </div>
                   <div className="text-sm text-muted-foreground">
                     제품별 룰셋 기반 실시간 모니터링 및 AI 기반 근본 원인 분석
