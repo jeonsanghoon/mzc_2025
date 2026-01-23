@@ -341,12 +341,19 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
     // "프로젝트 구성" 다이어그램 감지
     const isProjectStructure = diagramCode.includes("프로젝트 구성") || diagramCode.includes("프로젝트구성");
 
+    // 취소 플래그 (cleanup에서 사용)
+    let isCancelled = false;
+
     // Mermaid render API 사용 - 더 안정적
     const renderDiagram = async () => {
       try {
         // Mermaid 초기화 확인
-        if (typeof mermaid === 'undefined' || !mermaid.render) {
-          throw new Error("Mermaid 라이브러리가 로드되지 않았습니다.");
+        if (typeof mermaid === 'undefined') {
+          throw new Error("Mermaid 라이브러리가 로드되지 않았습니다. 페이지를 새로고침해주세요.");
+        }
+        
+        if (!mermaid.render || typeof mermaid.render !== 'function') {
+          throw new Error("Mermaid render 함수를 사용할 수 없습니다. Mermaid 버전을 확인해주세요.");
         }
 
         // 큰 흐름 다이어그램인지 확인
@@ -407,19 +414,46 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
         });
 
         // render API 사용
-        const result = await mermaid.render(uniqueId, diagramCode);
+        let result;
+        try {
+          result = await mermaid.render(uniqueId, diagramCode);
+        } catch (renderErr: any) {
+          // Mermaid 구문 오류 등
+          const renderErrorMsg = renderErr?.message || String(renderErr) || "알 수 없는 렌더링 오류";
+          throw new Error(`Mermaid 다이어그램 구문 오류: ${renderErrorMsg}`);
+        }
         
-        if (!result || !result.svg) {
-          throw new Error("SVG 생성 실패");
+        if (!result) {
+          throw new Error("Mermaid render 결과가 없습니다.");
+        }
+        
+        if (!result.svg || typeof result.svg !== 'string') {
+          throw new Error("SVG 생성 실패: 결과에 SVG가 포함되지 않았습니다.");
+        }
+        
+        if (isCancelled) {
+          return; // 취소된 경우 처리 중단
         }
 
         // SVG 파싱
         const parser = new DOMParser();
         const svgDoc = parser.parseFromString(result.svg, "image/svg+xml");
+        
+        // 파싱 오류 확인
+        const parseError = svgDoc.querySelector('parsererror');
+        if (parseError) {
+          const errorText = parseError.textContent || "SVG 파싱 오류";
+          throw new Error(`SVG 파싱 실패: ${errorText}`);
+        }
+        
         const svgElement = svgDoc.documentElement;
         
         if (!svgElement || svgElement.tagName !== 'svg') {
-          throw new Error("SVG 파싱 실패");
+          throw new Error("SVG 파싱 실패: SVG 요소를 찾을 수 없습니다.");
+        }
+        
+        if (isCancelled) {
+          return; // 취소된 경우 처리 중단
         }
         
         // 즉시 모든 rect 요소를 확인하고 배경을 흰색으로 변경
@@ -894,13 +928,23 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
         // SVG에 id 추가 (참조용)
         svgElement.setAttribute("data-mermaid-diagram", "true");
         
+        if (isCancelled) {
+          return; // 취소된 경우 처리 중단
+        }
+        
         setSvgContent(svgElement.outerHTML);
         setIsRendering(false);
+        setError(""); // 성공 시 에러 초기화
       } catch (err: any) {
+        if (isCancelled) {
+          return; // 취소된 경우 에러 표시 안 함
+        }
+        
         const errorMsg = err?.message || String(err) || "다이어그램 렌더링 실패";
         setError(errorMsg);
         console.error("Mermaid render error:", err);
-        console.error("Diagram code (first 500 chars):", diagramCode.substring(0, 500));
+        console.error("Error stack:", err?.stack);
+        console.error("Diagram code (first 500 chars):", diagramCode.substring(0, Math.min(500, diagramCode.length)));
         setIsRendering(false);
       }
     };
@@ -912,6 +956,7 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
 
     return () => {
       clearTimeout(timer);
+      isCancelled = true; // 컴포넌트 언마운트 시 취소 플래그 설정
     };
   }, [diagram]);
 
@@ -1528,11 +1573,22 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
         </div>
         <p className="text-yellow-800 text-sm mb-2">{error}</p>
         <details className="mt-2">
-          <summary className="text-xs text-yellow-700 cursor-pointer">원본 코드 보기</summary>
-          <pre className="mt-2 text-xs bg-yellow-100 p-2 rounded overflow-auto max-h-40">
-            {diagram.substring(0, 500)}
+          <summary className="text-xs text-yellow-700 cursor-pointer hover:text-yellow-900">
+            원본 코드 보기 ({diagram.length}자)
+          </summary>
+          <pre className="mt-2 text-xs bg-yellow-100 p-2 rounded overflow-auto max-h-60 font-mono">
+            {diagram.substring(0, Math.min(1000, diagram.length))}
+            {diagram.length > 1000 && "\n\n... (더 많은 내용이 있습니다)"}
           </pre>
         </details>
+        <div className="mt-3 text-xs text-yellow-700">
+          <p className="font-medium mb-1">해결 방법:</p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>Mermaid 구문을 확인해주세요</li>
+            <li>페이지를 새로고침해보세요</li>
+            <li>브라우저 콘솔에서 자세한 오류를 확인하세요</li>
+          </ul>
+        </div>
       </div>
     );
   }
