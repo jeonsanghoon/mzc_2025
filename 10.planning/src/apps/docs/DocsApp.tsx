@@ -305,7 +305,16 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [fullscreenPosition, setFullscreenPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const dragStateRef = useRef({
+  const dragStateRef = useRef<{
+    isDragging: boolean;
+    isFullscreen: boolean;
+    startClientX: number;
+    startClientY: number;
+    startPosX: number;
+    startPosY: number;
+    isTouch?: boolean;
+    startTouchId?: number;
+  }>({
     isDragging: false,
     isFullscreen: false,
     startClientX: 0,
@@ -1239,16 +1248,57 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
       startClientY: e.clientY,
       startPosX: startPos.x,
       startPosY: startPos.y,
+      isTouch: false,
     };
     setIsDragging(true);
   };
 
+  // 터치 드래그: 모바일에서 손가락으로 화면 드래그(패닝) 가능
+  const handleTouchStart = useCallback((e: React.TouchEvent, isFullscreen = false) => {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const startPos = isFullscreen ? fullscreenPosition : position;
+    dragStateRef.current = {
+      isDragging: true,
+      isFullscreen,
+      startClientX: t.clientX,
+      startClientY: t.clientY,
+      startPosX: startPos.x,
+      startPosY: startPos.y,
+      isTouch: true,
+      startTouchId: t.identifier,
+    };
+    setIsDragging(true);
+  }, [fullscreenPosition, position]);
+
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const dragState = dragStateRef.current;
-    if (!dragState.isDragging) return;
+    if (!dragState.isDragging || dragState.isTouch) return;
     e.preventDefault();
     const dx = e.clientX - dragState.startClientX;
     const dy = e.clientY - dragState.startClientY;
+    if (dragState.isFullscreen) {
+      setFullscreenPosition({
+        x: dragState.startPosX + dx,
+        y: dragState.startPosY + dy,
+      });
+    } else {
+      setPosition({
+        x: dragState.startPosX + dx,
+        y: dragState.startPosY + dy,
+      });
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    const dragState = dragStateRef.current;
+    if (!dragState.isDragging || !dragState.isTouch || dragState.startTouchId == null) return;
+    const t = Array.from(e.touches).find((tt) => tt.identifier === dragState.startTouchId);
+    if (!t) return;
+    e.preventDefault();
+    const dx = t.clientX - dragState.startClientX;
+    const dy = t.clientY - dragState.startClientY;
     if (dragState.isFullscreen) {
       setFullscreenPosition({
         x: dragState.startPosX + dx,
@@ -1268,18 +1318,33 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
     setIsDragging(false);
   }, []);
 
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    const dragState = dragStateRef.current;
+    if (!dragState.isDragging || !dragState.isTouch || dragState.startTouchId == null) return;
+    const t = Array.from(e.changedTouches).find((tt) => tt.identifier === dragState.startTouchId);
+    if (!t) return;
+    dragStateRef.current.isDragging = false;
+    setIsDragging(false);
+  }, []);
+
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       window.addEventListener('mouseleave', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove, { passive: false });
+      window.addEventListener('touchend', handleTouchEnd, { passive: true });
+      window.addEventListener('touchcancel', handleTouchEnd, { passive: true });
       return () => {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
         window.removeEventListener('mouseleave', handleMouseUp);
+        window.removeEventListener('touchmove', handleTouchMove);
+        window.removeEventListener('touchend', handleTouchEnd);
+        window.removeEventListener('touchcancel', handleTouchEnd);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   // 확대/축소 함수
   const handleZoomIn = (isFullscreen = false) => {
@@ -1620,8 +1685,11 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
                 cursor: isDragging ? 'grabbing' : 'grab',
                 backgroundColor: '#ffffff',
                 touchAction: 'none',
+                WebkitUserSelect: 'none',
+                userSelect: 'none',
               }}
               onMouseDown={(e) => handleMouseDown(e, true)}
+              onTouchStart={(e) => handleTouchStart(e, true)}
               onWheel={(e) => {
                 if (e.ctrlKey || e.metaKey) {
                   e.preventDefault();

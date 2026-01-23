@@ -28,7 +28,7 @@ import { CustomerSLA } from './dashboard/CustomerSLA';
 export function OperationalDashboard() {
   const [activeTab, setActiveTab] = useState('monitoring');
 
-  // Mock real-time data
+  // Mock real-time data (서버에서 5분마다 갱신된 데이터를 표시)
   const systemStats = {
     totalDevices: 12847,
     onlineDevices: 12234,
@@ -127,10 +127,15 @@ export function OperationalDashboard() {
       {/* Recent Alerts */}
       <Card className="mb-6">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            최근 알람
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              최근 경보 히스토리
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              서버에서 5분 간격으로 자동 갱신
+            </p>
+          </div>
           <Button variant="outline" size="sm">
             전체 보기
           </Button>

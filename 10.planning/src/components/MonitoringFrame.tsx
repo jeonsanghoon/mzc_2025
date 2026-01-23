@@ -14,6 +14,14 @@ import {
   TabsTrigger,
 } from "./ui/tabs";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import {
   AlertTriangle,
   TrendingUp,
   Zap,
@@ -43,6 +51,97 @@ import {
 } from "lucide-react";
 
 export function MonitoringFrame() {
+  // AWS 서비스별 경보 정보 (서버에서 5분마다 갱신된 데이터를 표시)
+  const awsServices = [
+    {
+      service: "Lambda",
+      description: "YAML 변환, 실시간 처리",
+      alerts: 12,
+      status: "문제",
+      monitoring: "정상",
+      issues: ["에러율 증가", "타임아웃 발생"],
+    },
+    {
+      service: "Kinesis Data Streams",
+      description: "실시간 데이터 스트리밍",
+      alerts: 8,
+      status: "문제",
+      monitoring: "정상",
+      issues: ["PutRecords 실패", "처리량 저하"],
+    },
+    {
+      service: "DocumentDB",
+      description: "Hot 데이터 저장",
+      alerts: 5,
+      status: "주의",
+      monitoring: "정상",
+      issues: ["연결 지연"],
+    },
+    {
+      service: "Aurora (RDS)",
+      description: "Warm 데이터, 기초 정보",
+      alerts: 3,
+      status: "정상",
+      monitoring: "정상",
+      issues: [],
+    },
+    {
+      service: "ECS",
+      description: "TCP 수신 서비스",
+      alerts: 0,
+      status: "정상",
+      monitoring: "정상",
+      issues: [],
+    },
+    {
+      service: "S3",
+      description: "Raw/Standardized/Curated",
+      alerts: 0,
+      status: "정상",
+      monitoring: "정상",
+      issues: [],
+    },
+    {
+      service: "CloudWatch",
+      description: "모니터링 및 알람",
+      alerts: 0,
+      status: "정상",
+      monitoring: "정상",
+      issues: [],
+    },
+    {
+      service: "EventBridge",
+      description: "이벤트 라우팅",
+      alerts: 0,
+      status: "정상",
+      monitoring: "부족",
+      issues: [],
+    },
+    {
+      service: "SNS",
+      description: "알림 발송",
+      alerts: 0,
+      status: "정상",
+      monitoring: "부족",
+      issues: [],
+    },
+  ];
+
+  // 정렬: 문제가 있는 서비스부터, 문제가 많은 순, 그 다음 정상 모니터링 순
+  const sortedAwsServices = [...awsServices].sort((a, b) => {
+    // 1. 문제가 있는 서비스 우선 (status가 "문제" > "주의" > "정상")
+    const statusOrder = { "문제": 0, "주의": 1, "정상": 2 };
+    const statusDiff = statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder];
+    if (statusDiff !== 0) return statusDiff;
+    
+    // 2. 같은 상태면 경보 수가 많은 순
+    if (a.alerts !== b.alerts) return b.alerts - a.alerts;
+    
+    // 3. 경보 수도 같으면 모니터링 상태 (부족 < 정상)
+    const monitoringOrder = { "부족": 0, "정상": 1 };
+    return monitoringOrder[a.monitoring as keyof typeof monitoringOrder] - monitoringOrder[b.monitoring as keyof typeof monitoringOrder];
+  });
+
   // 통신오류 모니터링 데이터
   const communicationErrors = [
     {
@@ -825,6 +924,106 @@ export function MonitoringFrame() {
                     </p>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AWS 서비스별 경보 정보 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="h-5 w-5 text-blue-500" />
+                AWS 서비스별 경보 정보
+              </CardTitle>
+              <CardDescription>
+                문제가 있는 서비스부터 정렬 (문제 많은 순 → 정상 모니터링 순)
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  서버에서 5분 간격으로 자동 갱신
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">서비스</TableHead>
+                      <TableHead>설명</TableHead>
+                      <TableHead className="text-center">경보 수</TableHead>
+                      <TableHead className="text-center">상태</TableHead>
+                      <TableHead className="text-center">모니터링</TableHead>
+                      <TableHead>이슈</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedAwsServices.map((service, index) => {
+                      const getStatusBadge = (status: string) => {
+                        switch (status) {
+                          case "문제":
+                            return <Badge className="bg-red-100 text-red-700 border-red-300">문제</Badge>;
+                          case "주의":
+                            return <Badge className="bg-orange-100 text-orange-700 border-orange-300">주의</Badge>;
+                          case "정상":
+                            return <Badge className="bg-green-100 text-green-700 border-green-300">정상</Badge>;
+                          default:
+                            return <Badge variant="outline">{status}</Badge>;
+                        }
+                      };
+
+                      const getMonitoringBadge = (monitoring: string) => {
+                        if (monitoring === "부족") {
+                          return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">부족</Badge>;
+                        }
+                        return <Badge className="bg-green-100 text-green-700 border-green-300">정상</Badge>;
+                      };
+
+                      return (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {service.service}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {service.description}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {service.alerts > 0 ? (
+                              <span className="font-semibold text-red-600">{service.alerts}</span>
+                            ) : (
+                              <span className="text-muted-foreground">0</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getStatusBadge(service.status)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getMonitoringBadge(service.monitoring)}
+                          </TableCell>
+                          <TableCell>
+                            {service.issues.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {service.issues.map((issue, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">
+                                    {issue}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 "부족" 표시 기준:</strong> 경보 설정이 없거나, 모니터링 메트릭이 충분하지 않을 때 표시됩니다.
+                  <br />
+                  예: EventBridge, SNS 등 경보 알람이 설정되지 않은 서비스
+                </p>
               </div>
             </CardContent>
           </Card>
