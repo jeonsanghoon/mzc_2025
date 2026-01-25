@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Input } from "../../components/ui/input";
-import { FileText, BookOpen, GitBranch, ChevronRight, Play, Code2, ZoomIn, ZoomOut, Maximize2, RotateCcw, X, Expand, Target, Flag, Layout, Menu } from "lucide-react";
+import { FileText, BookOpen, GitBranch, ChevronRight, Play, Code2, ZoomIn, ZoomOut, Maximize2, RotateCcw, X, Expand, Target, Flag, Layout, Menu, Database } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import ReactMarkdown from "react-markdown";
 import rehypeSlug from "rehype-slug";
@@ -78,13 +78,13 @@ const docFiles = [
     perspectives: ["lab"] as Perspective[],
   },
   {
-    id: "readme",
-    title: "4. 웹 애플리케이션 가이드",
-    description: "🌐 서비스 관점: 고객이 사용하는 웹 화면(프레젠테이션/대시보드/설계 문서), 접속·이용 방법",
-    icon: FileText,
-    color: "text-orange-600",
-    file: "README.md",
-    perspectives: ["service", "customer"] as Perspective[],
+    id: "enterprise-data-integration",
+    title: "4. 전사 데이터 통합 기준",
+    description: "🏢 Phase 1: 서비스 통합 전략, YAML 변환 룰 (IoT+서비스), SQL 배치 처리, 데이터 거버넌스",
+    icon: Database,
+    color: "text-teal-600",
+    file: "ENTERPRISE_DATA_INTEGRATION.md",
+    perspectives: ["lab", "service"] as Perspective[],
   },
 ];
 
@@ -314,6 +314,11 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
     startPosY: number;
     isTouch?: boolean;
     startTouchId?: number;
+    isPinching?: boolean;
+    initialDistance?: number;
+    initialZoom?: number;
+    initialCenterX?: number;
+    initialCenterY?: number;
   }>({
     isDragging: false,
     isFullscreen: false,
@@ -379,18 +384,18 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
             diagramPadding: isLargeFlow ? 5 : (isProjectStructure ? 30 : 10),
           },
           themeVariables: {
-            // 배경·서브그래프 (알록달록 기초)
+            // 배경·서브그래프 (밝고 명확한 배경)
             mainBkg: "#ffffff",
-            secondBkg: "#e9d5ff",
-            tertiaryBkg: "#fce7f3",
-            // 텍스트
-            primaryTextColor: "#1e293b",
-            secondaryTextColor: "#334155",
-            textColor: "#1e293b",
-            // 노드 채우기 (명분별 다양하게)
-            primaryColor: "#dbeafe",
-            secondaryColor: "#dcfce7",
-            tertiaryColor: "#ffedd5",
+            secondBkg: "#f8fafc",
+            tertiaryBkg: "#f1f5f9",
+            // 텍스트 (진한 색상으로 명확하게)
+            primaryTextColor: "#0f172a",
+            secondaryTextColor: "#1e293b",
+            textColor: "#0f172a",
+            // 노드 채우기 (밝은 색상으로 대비 확보)
+            primaryColor: "#eff6ff",
+            secondaryColor: "#f0fdf4",
+            tertiaryColor: "#fff7ed",
             // 노드 테두리 (도형 경계 선명)
             primaryBorderColor: "#3b82f6",
             secondaryBorderColor: "#22c55e",
@@ -890,19 +895,19 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
           if (p.length >= 4) { vbW = p[2]; vbH = p[3]; }
         }
         const purposeColors: [RegExp, string][] = [
-          [/\b(수집|ingest|수신|gateway|게이트웨이|vpn|터널|kinesis|스트리밍|어댑터|tcp|mqtt|rest|ecs|iot\s*core)\b/gi, '#dbeafe'],
-          [/\b(저장|storage|documentdb|s3|aurora|raw|warm|cold|layer|iceberg|athena|firehose)\b/gi, '#dcfce7'],
-          [/\b(처리|process|lambda|변환|분류|convert|classify|컨버트|aggregate|집계)\b/gi, '#e9d5ff'],
-          [/\b(알람|alarm|alert|룰|rule|rules|에스컬레이션|sns)\b/gi, '#fef3c7'],
-          [/\b(제어|control|shadow|ota|fota|펌웨어|원격)\b/gi, '#ccfbf1'],
-          [/\b(분석|analysis|ai|bedrock|sagemaker|이상|rca|예측|predictive)\b/gi, '#fce7f3'],
-          [/\b(모니터링|monitor|대시보드|cloudwatch)\b/gi, '#e0e7ff'],
-          [/\b(기초|마스터|master|기초정보|조인|site|고객)\b/gi, '#f1f5f9'],
-          [/\b(기사|as\s|출동|field\s*service)\b/gi, '#ffedd5'],
-          [/\b(eventbridge|이벤트|event)\b/gi, '#f3e8ff'],
-          [/\b(플랫폼|platform|통합|integrat)\b/gi, '#fef9c3'],
-          [/\b(온프레미스|onprem|legacy|기존)\b/gi, '#e0f2fe'],
-          [/\b(보안|security|cognito|secrets)\b/gi, '#fef2f2'],
+          [/\b(수집|ingest|수신|gateway|게이트웨이|vpn|터널|kinesis|스트리밍|어댑터|tcp|mqtt|rest|ecs|iot\s*core)\b/gi, '#eff6ff'], // 더 밝은 파랑
+          [/\b(저장|storage|documentdb|s3|aurora|raw|warm|cold|layer|iceberg|athena|firehose)\b/gi, '#f0fdf4'], // 더 밝은 초록
+          [/\b(처리|process|lambda|변환|분류|convert|classify|컨버트|aggregate|집계)\b/gi, '#f5f3ff'], // 더 밝은 보라
+          [/\b(알람|alarm|alert|룰|rule|rules|에스컬레이션|sns)\b/gi, '#fefce8'], // 더 밝은 노랑
+          [/\b(제어|control|shadow|ota|fota|펌웨어|원격)\b/gi, '#ecfeff'], // 더 밝은 청록
+          [/\b(분석|analysis|ai|bedrock|sagemaker|이상|rca|예측|predictive)\b/gi, '#fdf2f8'], // 더 밝은 핑크
+          [/\b(모니터링|monitor|대시보드|cloudwatch)\b/gi, '#eef2ff'], // 더 밝은 인디고
+          [/\b(기초|마스터|master|기초정보|조인|site|고객)\b/gi, '#f8fafc'], // 더 밝은 회색
+          [/\b(기사|as\s|출동|field\s*service)\b/gi, '#fff7ed'], // 더 밝은 주황
+          [/\b(eventbridge|이벤트|event)\b/gi, '#faf5ff'], // 더 밝은 보라
+          [/\b(플랫폼|platform|통합|integrat)\b/gi, '#fefce8'], // 더 밝은 노랑
+          [/\b(온프레미스|onprem|legacy|기존)\b/gi, '#f0f9ff'], // 더 밝은 하늘색
+          [/\b(보안|security|cognito|secrets)\b/gi, '#fef2f2'], // 더 밝은 빨강
         ];
         svgElement.querySelectorAll('g').forEach((g) => {
           const cls = (g.getAttribute('class') || '') + (g.getAttribute('id') || '');
@@ -924,6 +929,116 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
           else if (st) r.setAttribute('style', st + `; fill:${color}`);
           else r.setAttribute('style', `fill:${color}`);
         });
+
+        // 모든 텍스트 요소의 색상을 진하게 강제 설정 (가독성 향상)
+        const allTextElements = svgElement.querySelectorAll('text, tspan');
+        allTextElements.forEach((textEl: Element) => {
+          const t = textEl as SVGTextElement;
+          const fill = t.getAttribute('fill');
+          const style = t.getAttribute('style') || '';
+          
+          // 텍스트 색상을 진한 색상으로 강제 설정 (#0f172a 또는 #1e293b)
+          const darkTextColor = '#0f172a'; // 매우 진한 색상
+          
+          // fill 속성이 없거나 연한 색상인 경우 진한 색으로 변경
+          if (!fill || fill === 'none' || fill === 'transparent' || 
+              fill.toLowerCase() === '#ffffff' || fill.toLowerCase() === '#fff' ||
+              fill.toLowerCase() === '#f8fafc' || fill.toLowerCase() === '#f1f5f9') {
+            t.setAttribute('fill', darkTextColor);
+          } else {
+            // fill이 있는 경우 밝기 확인
+            const fillLower = fill.toLowerCase();
+            let isLight = false;
+            
+            if (fillLower.startsWith('#')) {
+              const hex = fillLower.replace('#', '');
+              if (hex.length === 6) {
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                isLight = brightness > 200; // 밝은 색상
+              } else if (hex.length === 3) {
+                const first = parseInt(hex[0], 16);
+                const second = parseInt(hex[1], 16);
+                const third = parseInt(hex[2], 16);
+                const brightness = ((first * 16 + first) * 299 + (second * 16 + second) * 587 + (third * 16 + third) * 114) / 1000;
+                isLight = brightness > 200;
+              }
+            } else if (fillLower.includes('rgb')) {
+              const rgbMatch = fillLower.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+              if (rgbMatch) {
+                const r = parseInt(rgbMatch[1]);
+                const g = parseInt(rgbMatch[2]);
+                const b = parseInt(rgbMatch[3]);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                isLight = brightness > 200;
+              }
+            }
+            
+            // 밝은 색상이거나 대비가 낮은 경우 진한 색으로 변경
+            if (isLight) {
+              t.setAttribute('fill', darkTextColor);
+            } else {
+              // 이미 어두운 색이어도 최소한 #1e293b 이상은 보장
+              const currentBrightness = (() => {
+                if (fillLower.startsWith('#')) {
+                  const hex = fillLower.replace('#', '');
+                  if (hex.length === 6) {
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    return (r * 299 + g * 587 + b * 114) / 1000;
+                  }
+                }
+                return 0;
+              })();
+              
+              if (currentBrightness > 100) {
+                t.setAttribute('fill', darkTextColor);
+              }
+            }
+          }
+          
+          // style 속성도 업데이트
+          if (style) {
+            let newStyle = style;
+            if (style.includes('fill:')) {
+              newStyle = style.replace(/fill:\s*[^;]+/gi, `fill:${darkTextColor}`);
+            } else {
+              newStyle = style + `; fill:${darkTextColor}`;
+            }
+            t.setAttribute('style', newStyle);
+          } else {
+            t.setAttribute('style', `fill:${darkTextColor}`);
+          }
+        });
+
+        // SVG에 전역 스타일 추가 (모든 텍스트가 진한 색으로 표시되도록)
+        let styleElement = svgElement.querySelector('style');
+        if (!styleElement) {
+          styleElement = svgDoc.createElementNS('http://www.w3.org/2000/svg', 'style');
+          if (svgElement.firstChild) {
+            svgElement.insertBefore(styleElement, svgElement.firstChild);
+          } else {
+            svgElement.appendChild(styleElement);
+          }
+        }
+        
+        const existingStyle = styleElement.textContent || '';
+        const textColorStyle = `
+          text, tspan {
+            fill: #0f172a !important;
+            color: #0f172a !important;
+          }
+          text[fill]:not([fill="none"]):not([fill="transparent"]) {
+            fill: #0f172a !important;
+          }
+        `;
+        
+        if (!existingStyle.includes('text, tspan')) {
+          styleElement.textContent = (existingStyle + textColorStyle).trim();
+        }
 
         // SVG에 id 추가 (참조용)
         svgElement.setAttribute("data-mermaid-diagram", "true");
@@ -1298,24 +1413,69 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
     setIsDragging(true);
   };
 
-  // 터치 드래그: 모바일에서 손가락으로 화면 드래그(패닝) 가능
-  const handleTouchStart = useCallback((e: React.TouchEvent, isFullscreen = false) => {
-    if (e.touches.length !== 1) return;
-    e.preventDefault();
-    const t = e.touches[0];
-    const startPos = isFullscreen ? fullscreenPosition : position;
-    dragStateRef.current = {
-      isDragging: true,
-      isFullscreen,
-      startClientX: t.clientX,
-      startClientY: t.clientY,
-      startPosX: startPos.x,
-      startPosY: startPos.y,
-      isTouch: true,
-      startTouchId: t.identifier,
+  // 두 손가락 사이 거리 계산
+  const getDistance = (touch1: Touch, touch2: Touch) => {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // 두 손가락 중심점 계산
+  const getCenter = (touch1: Touch, touch2: Touch) => {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2,
     };
-    setIsDragging(true);
-  }, [fullscreenPosition, position]);
+  };
+
+  // 터치 드래그 및 pinch-to-zoom: 모바일에서 손가락으로 화면 드래그(패닝) 및 두 손가락 확대/축소 가능
+  const handleTouchStart = useCallback((e: React.TouchEvent, isFullscreen = false) => {
+    e.preventDefault();
+    
+    // 두 손가락 터치: pinch-to-zoom
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = getDistance(touch1, touch2);
+      const center = getCenter(touch1, touch2);
+      const currentZoom = isFullscreen ? fullscreenZoom : zoom;
+      
+      dragStateRef.current = {
+        isDragging: true,
+        isFullscreen,
+        isTouch: true,
+        isPinching: true,
+        initialDistance: distance,
+        initialZoom: currentZoom,
+        initialCenterX: center.x,
+        initialCenterY: center.y,
+        startClientX: center.x,
+        startClientY: center.y,
+        startPosX: isFullscreen ? fullscreenPosition.x : position.x,
+        startPosY: isFullscreen ? fullscreenPosition.y : position.y,
+      };
+      setIsDragging(true);
+      return;
+    }
+    
+    // 한 손가락 터치: 드래그
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      const startPos = isFullscreen ? fullscreenPosition : position;
+      dragStateRef.current = {
+        isDragging: true,
+        isFullscreen,
+        startClientX: t.clientX,
+        startClientY: t.clientY,
+        startPosX: startPos.x,
+        startPosY: startPos.y,
+        isTouch: true,
+        startTouchId: t.identifier,
+        isPinching: false,
+      };
+      setIsDragging(true);
+    }
+  }, [fullscreenPosition, position, fullscreenZoom, zoom]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const dragState = dragStateRef.current;
@@ -1338,22 +1498,46 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     const dragState = dragStateRef.current;
-    if (!dragState.isDragging || !dragState.isTouch || dragState.startTouchId == null) return;
-    const t = Array.from(e.touches).find((tt) => tt.identifier === dragState.startTouchId);
-    if (!t) return;
+    if (!dragState.isDragging || !dragState.isTouch) return;
     e.preventDefault();
-    const dx = t.clientX - dragState.startClientX;
-    const dy = t.clientY - dragState.startClientY;
-    if (dragState.isFullscreen) {
-      setFullscreenPosition({
-        x: dragState.startPosX + dx,
-        y: dragState.startPosY + dy,
-      });
-    } else {
-      setPosition({
-        x: dragState.startPosX + dx,
-        y: dragState.startPosY + dy,
-      });
+    
+    // 두 손가락 pinch-to-zoom
+    if (dragState.isPinching && e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const currentDistance = getDistance(touch1, touch2);
+      
+      if (dragState.initialDistance && dragState.initialZoom !== undefined) {
+        const scale = currentDistance / dragState.initialDistance;
+        const newZoom = Math.max(0.3, Math.min(5, dragState.initialZoom * scale));
+        
+        if (dragState.isFullscreen) {
+          setFullscreenZoom(newZoom);
+        } else {
+          setZoom(Math.max(0.3, Math.min(3, newZoom)));
+        }
+      }
+      return;
+    }
+    
+    // 한 손가락 드래그
+    if (!dragState.isPinching && dragState.startTouchId != null && e.touches.length === 1) {
+      const t = Array.from(e.touches).find((tt) => tt.identifier === dragState.startTouchId);
+      if (!t) return;
+      
+      const dx = t.clientX - dragState.startClientX;
+      const dy = t.clientY - dragState.startClientY;
+      if (dragState.isFullscreen) {
+        setFullscreenPosition({
+          x: dragState.startPosX + dx,
+          y: dragState.startPosY + dy,
+        });
+      } else {
+        setPosition({
+          x: dragState.startPosX + dx,
+          y: dragState.startPosY + dy,
+        });
+      }
     }
   }, []);
 
@@ -1365,11 +1549,27 @@ function MermaidDiagram({ diagram }: { diagram: string }) {
 
   const handleTouchEnd = useCallback((e: TouchEvent) => {
     const dragState = dragStateRef.current;
-    if (!dragState.isDragging || !dragState.isTouch || dragState.startTouchId == null) return;
-    const t = Array.from(e.changedTouches).find((tt) => tt.identifier === dragState.startTouchId);
-    if (!t) return;
-    dragStateRef.current.isDragging = false;
-    setIsDragging(false);
+    if (!dragState.isDragging || !dragState.isTouch) return;
+    
+    // 두 손가락 pinch 종료
+    if (dragState.isPinching) {
+      // 두 손가락이 모두 떼어졌거나 하나만 남은 경우
+      if (e.touches.length < 2) {
+        dragStateRef.current.isDragging = false;
+        dragStateRef.current.isPinching = false;
+        setIsDragging(false);
+      }
+      return;
+    }
+    
+    // 한 손가락 드래그 종료
+    if (dragState.startTouchId != null) {
+      const t = Array.from(e.changedTouches).find((tt) => tt.identifier === dragState.startTouchId);
+      if (t || e.touches.length === 0) {
+        dragStateRef.current.isDragging = false;
+        setIsDragging(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
